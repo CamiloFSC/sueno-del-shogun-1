@@ -40,6 +40,9 @@ var status: Label
 var zone_opp: HBoxContainer
 var zone_me: HBoxContainer
 var hand_box: HBoxContainer
+var hand_scroll: ScrollContainer
+var hand_press := false          # botón izquierdo pulsado sobre la mano
+var hand_moved := 0.0            # cuánto se arrastró de lado (evita que el arrastre juegue la carta)
 var bar: HBoxContainer
 var log_box: RichTextLabel
 var sfx_bank: Sfx
@@ -156,6 +159,7 @@ func _build_ui() -> void:
 	var sc := ScrollContainer.new()
 	sc.custom_minimum_size = Vector2(0, HAND_H + 22)
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hand_scroll = sc
 	root.add_child(sc)
 	hand_box = HBoxContainer.new()
 	hand_box.add_theme_constant_override("separation", 6)
@@ -733,7 +737,7 @@ func _art_btn(id: int, tex: Texture2D, enabled: bool, cb: Callable, h: int) -> B
 	b.mouse_entered.connect(func(): _show_detail(id); _zoom_show(id, b))
 	b.mouse_exited.connect(func(): _hide_preview(); _zoom_leave())
 	if cb.is_valid() and enabled:
-		b.pressed.connect(cb)
+		b.pressed.connect(func(): if hand_moved <= 8.0: cb.call())
 	return b
 
 func _card_btn(id: int, enabled: bool, cb: Callable = Callable(), h: int = ZONE_H) -> Button:
@@ -759,7 +763,7 @@ func _card_btn(id: int, enabled: bool, cb: Callable = Callable(), h: int = ZONE_
 	b.mouse_entered.connect(func(): _show_detail(id); _zoom_show(id, b))
 	b.mouse_exited.connect(func(): _hide_preview(); _zoom_leave())
 	if cb.is_valid():
-		b.pressed.connect(cb)
+		b.pressed.connect(func(): if hand_moved <= 8.0: cb.call())
 	return b
 
 # ---------------------------------------------------------------- zoom de cartas (lupa)
@@ -859,6 +863,19 @@ func _open_zoom(id: int) -> void:
 
 func _close_zoom() -> void:
 	zoom_overlay.visible = false
+
+## Arrastrar la mano: con el botón pulsado sobre ella, mover el mouse de lado la desplaza.
+func _input(ev: InputEvent) -> void:
+	if hand_scroll == null:
+		return
+	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+		hand_press = ev.pressed and hand_scroll.get_global_rect().has_point(ev.position)
+		if ev.pressed:
+			hand_moved = 0.0
+	elif ev is InputEventMouseMotion and hand_press and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		hand_moved += absf(ev.relative.x)
+		if hand_moved > 8.0:
+			hand_scroll.scroll_horizontal -= int(ev.relative.x)
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if zoom_overlay != null and zoom_overlay.visible and ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
@@ -1254,7 +1271,9 @@ func _open_pile(p: int) -> void:
 		e.text = "El pozo está vacío."
 		pile_box.add_child(e)
 	for i in range(pl.discard.size() - 1, -1, -1):
-		var b := _card_btn(pl.discard[i], true, Callable(), 170)
+		var did: int = pl.discard[i]
+		var b := _card_btn(did, true, func(): _open_zoom(did), 170)   # clic = ver la carta en grande
+		b.tooltip_text = "Clic para ver la carta en grande"
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
 		pile_box.add_child(b)
 	pile_overlay.visible = true
