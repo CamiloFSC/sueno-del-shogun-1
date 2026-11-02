@@ -1,0 +1,5 @@
+FUENTE DE LA INTERFAZ
+Copia aquí el archivo de la fuente (por ejemplo Harukaze.ttf u .otf). El juego usa automáticamente
+el archivo cuyo nombre contenga «harukaze»; si no hay, usa el primero que encuentre.
+Si la fuente no tiene tildes, ñ o números, esos caracteres se completan con la fuente normal.
+También se busca en una carpeta «fuentes» junto al ejecutable. Sin archivos, se usa la fuente por defecto.

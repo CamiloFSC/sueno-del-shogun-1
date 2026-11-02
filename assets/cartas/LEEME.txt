@@ -1,0 +1,13 @@
+IMÁGENES DE CARTAS
+==================
+Pon aquí una imagen por carta (o en una carpeta llamada "cartas" junto al juego). El juego la usa automáticamente en lugar del cuadro de color.
+
+Nombre del archivo (cualquiera de estas formas sirve):
+  - empieza con el número de la carta:   1.jfif   001.jpg   55.png   12 Pirata Wokou.jfif
+  - o el nombre de la carta: saizo.png   hattori_hanzo.jpg   ceremonia_del_te.jfif
+    (minúsculas, sin tildes, espacios como guion bajo)
+
+Formatos: jfif, jpg, jpeg, png o webp.
+Las imágenes grandes se reducen al cargarlas (no necesitas achicarlas antes).
+Cartas verticales (guerreros y bushi) y horizontales (daimyos): el juego respeta la proporción de cada imagen.
+Si falta la imagen de una carta, se muestra el cuadro de color de siempre.

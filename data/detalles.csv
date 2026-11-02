@@ -1,0 +1,100 @@
+﻿id,detalle
+1,"Si está solo y mata a un oponente, el rival descarta 1 carta de su mano AL AZAR."
+2,Solo en ataque directo al castillo (el rival no resiste): el rival roba 2 cartas del castillo en vez de 1. Kotaro puede copiarlo.
+3,"Al entrar en juego puedes recoger 1 Ninja de tu pozo a tu mano (ventana de elección, opcional)."
+4,"Si está solo y no tienes Honor, tira 1 dado extra."
+5,+3 dados si el rival activo es un Daimyo y tienes 0 de Honor.
+6,"Al comenzar el duelo descartas 2 cartas de tu mano (obligatorio si tienes 2 o más; eliges cuáles). Si ambas son Ninja, +5 puntos fijos al total de la tirada."
+7,Si tienes al menos 3 ninja en el pozo puedes robar cartas hasta tener 7 en tu mano.
+8,+1 dado si el rival tiene más Honor que tú.
+9,"Cuando ataca, copia el efecto de batalla de hasta 2 Ninja distintos que tengas en tu MANO (todos a la vez)."
+10,"Después del duelo, si en alguno de sus dados salió un 3, robas 1 carta."
+11,"Habilidad (botón «Habilidades», una vez por turno): miras las 3 cartas de arriba de tu mazo y las ordenas como quieras."
+12,"Habilidad (una vez por turno): si está en tu pozo, pagas su coste de Honor y vuelve a tu mano."
+13,Tira 1 dado extra por cada guerrero de coste 1 sin clan (Ronin) que tengas en juego (máximo 4).
+14,+3 dados si el guerrero activo del rival es Ninja.
+15,"Cuando RECIBE un ataque, puedes descartar 2 cartas de tu mano para sumar 4 dados."
+16,"Al atacar tira como mínimo un dado por cada carta que falte en tu castillo (si su ataque normal es mayor, usa el mayor)."
+17,"+1 dado por cada 2 puntos de Honor que tengas (redondeado hacia abajo, sin tope)."
+18,"Habilidad (una vez por turno): si no tienes cartas en la mano, recoges 1 Ronin de tu pozo a tu mano."
+19,Al entrar en duelo te pregunta si robas 1 carta por cada carta que tengas boca abajo.
+20,"Al entrar en juego tira un dado; si sale par, puedes recoger 1 carta Bushi de tu pozo."
+21,+1 dado si no tienes cartas boca abajo.
+22,"Durante tu turno, reduce en 1 el costo de Honor de tus guerreros del clan Toyotomi."
+23,"Si ganas el duelo, puedes mirar la mano del rival (ventana informativa)."
+24,"Si el total de sus dados en el duelo es 9 o más, robas 3 cartas."
+25,Efecto continuo: reduce en 1 el coste de Honor de Ieyasu (Daimyo Tokugawa) mientras Sakai esté en juego.
+26,+3 dados si el guerrero activo del rival es Ronin.
+27,"Al defender, tira como mínimo un dado por cada carta que falte en tu castillo (si su ataque normal es mayor, usa el mayor)."
+28,"+1 dado por cada Daimyo en juego (tuyos y del rival), máximo 4."
+29,"Elige un número de 1 a 6. Si sale al menos una vez, suma 7 al total."
+30,+1 dado si tienes más cartas en tu castillo que el rival. (El texto original estaba cortado; interpretación confirmada: «que tu oponente».)
+31,"Mientras Kage Katsu está en duelo, cada vez que un jugador usa una carta Bushi, ese jugador descarta 1 carta de su propia mano (la elige él)."
+32,"+1 dado si tienes en juego otro guerrero del clan Uesugi o Ikko Ikki (aunque haya varios, el bono es +1)."
+33,"Mientras Nabe sea el guerrero activo, tu oponente no puede colocar cartas Bushi boca abajo. No afecta a las que ya estaban colocadas."
+34,"Mientras Junyo sea el guerrero activo, tu oponente no puede jugar más de 1 carta Bushi por turno."
+35,"Aumenta en 1 la capacidad del Complejo Enryaku-Ji (necesitas la acción Complejo Enryaku-Ji en juego). Si Rennyo se va, los miembros sobrantes vuelven a la mano."
+36,"Si está en el Complejo Enryaku-Ji, los héroes Ikko Ikki y Uesugi que salgan del complejo reciben +2 de ataque permanente en vez de +1."
+37,+1 dado si el rival tiene más cartas en la mano que tú.
+38,"Si derrota a un guerrero, puedes buscar al Daimyo Mori (Terumoto) en tu mazo y ponerlo en tu mano."
+39,+1 dado si jugaste 3 o más cartas Bushi durante este turno.
+40,Al entrar en juego recoges 1 guerrero (o Daimyo) de tu pozo a tu mano; eliges cuál.
+41,"Si derrota a un guerrero rival en batalla, ganas +1 de Honor."
+42,"Al atacar, tira como mínimo un dado por cada carta que tengas en tu castillo (si su ataque normal es mayor, usa el mayor)."
+43,+2 puntos fijos al total de su tirada (interpretación: «suma 2 puntos a uno de tus dados» equivale a +2 al total).
+44,El guerrero activo del rival tira 1 dado menos (mínimo 1).
+45,Al entrar en juego eliges 3 guerreros de tu pozo y los pones al final de tu mazo.
+46,+1 dado si tu castillo tiene las 7 cartas.
+47,Entra en juego sin pagar su coste de Honor si tienes en juego a su Daimyo (Date).
+48,"Si el Daimyo Date está en juego, Terumune recibe +2 dados en vez de +1 (dobla el efecto de su Daimyo)."
+49,Habilidad (una vez por turno): generas 1 de Honor si tienes en juego otro miembro del clan Ashikaga.
+50,Habilidad (una vez por turno): generas 2 de Honor si tienes en juego 2 miembros más del clan Ashikaga.
+51,Habilidad (una vez por turno): nombras un clan; sus guerreros cuestan 1 Honor más en el próximo turno del rival.
+52,Entra en juego sin pagar su coste de Honor si tienes en juego un Ronin con «Pirata» en su nombre (hoy: Pirata Wokou).
+53,Al comenzar el duelo tira un dado: el resultado es la cantidad de dados que lanzará en ese duelo.
+54,"Tira un dado por cada carta en la mano del rival (máximo 7); si su ataque normal es mayor, usa el mayor."
+55,Habilidad (una vez por turno): robas 3 cartas; después puedes descartar 3 para generar 3 de Honor.
+56,"Habilidad (una vez por turno, en un duelo de TU turno): después de tirar los dados y antes de decidir, cambias 1 dado (tuyo o del rival) al valor que quieras (1 a 6). Funciona en zona activa o pasiva."
+57,"Habilidad (una vez por turno): pagas 1 de Honor, buscas 1 carta en tu mazo y la pones en tu mano (el mazo se revuelve)."
+58,Efecto continuo durante tu turno: tus guerreros del clan Takeda cuestan 1 Honor menos (mínimo 0).
+59,"Al entrar en juego: descartas 3 cartas de tu mano, revuelves el resto en tu mazo y robas 7."
+60,"Todos los guerreros del clan Date en juego tiran +1 dado en batalla (Terumune, +2)."
+61,"Una vez por turno robas 1 carta extra. Mientras esté en juego, todos tus Ninja tiran 1 dado extra en duelo."
+62,Habilidad (una vez por turno): robas 1 carta por cada Ronin en juego (máximo 3) y generas 1 de Honor.
+63,+1 dado por cada OTRO guerrero Mori en juego (máximo 2). (Efecto propuesto por Claude; confirma si coincide con tu carta.)
+64,Habilidad (una vez por turno): cambias 1 carta de tu mano por 1 carta de tu castillo.
+65,+2 dados cuando pelea contra guerreros (no contra Daimyo).
+66,"Al terminar tu turno, si Kenyo no atacó o está dentro del Complejo Enryaku-Ji, generas 3 de Honor."
+67,Habilidad (una vez por turno): pagas 2 de Honor y recoges 1 guerrero Imagawa de tu pozo a tu mano. (Efecto propuesto por Claude; confirma si coincide con tu carta.)
+68,"Duplica el efecto de Ceremonia del té, Reparadores y El destino del clan mientras esté en juego."
+69,"Pagas 2 cartas de tu castillo (las robas) y un Daimyo rival pasa a tu zona de guerreros pasivos («en guardia»). Si no hay lugar, va a tu pozo."
+70,"Solo después de lanzar los dados (ventana de dados): eliges un dado, tuyo o del rival, y se vuelve a lanzar (sale un valor nuevo al azar)."
+71,Robas 1 carta y generas 1 de Honor. Solo en tu turno.
+72,"Después de lanzar los dados, si tienes 2 o más cartas en tu castillo que tu rival, eliges UNO de tus dados y su resultado se triplica."
+73,Después de lanzar los dados: pagas 1 de Honor y cada dado del rival baja 1 punto (un dado nunca baja de 1).
+74,Nombras un clan; robas 1 carta por cada personaje de ese clan en juego (de ambos jugadores). El doble con Yoshiteru.
+75,Solo en tu turno y con 3 cartas o menos en la mano (contándola): lanzas un dado y robas tantas cartas como puntos.
+76,Después de lanzar los dados: fijas un dado (tuyo o del rival) en 3.
+77,"Necesitas 2 héroes del mismo clan en juego (Ninja y Ronin cuentan como clanes propios) y que el rival tenga cartas boca abajo: destruyes una de ellas, elegida a ciegas (izquierda/derecha). Se juega en tu turno o antes de lanzar."
+78,"Antes de lanzar, en un duelo: el primer dado de tu próximo lanzamiento vale 6."
+79,Solo con 4 o más cartas en la mano (contando Reiki): botas 3 cartas a tu elección y ganas 2 de Honor.
+80,Nombras un clan; todos tus héroes (salvo Ninja y Ronin) pasan a pertenecer a ese clan hasta el final del turno. Se juega en tu turno o antes de lanzar.
+81,"Antes de lanzar, en un duelo (una vez por batalla): se anulan todas las modificaciones de esta batalla. Cada guerrero lanza solo los dados de su carta y los efectos de inicio de batalla no ocurren. Las cartas jugadas después sí cuentan."
+82,Eliges X cartas de tu mano (0 a todas) y van al final de tu mazo; luego robas X. Necesitas al menos 2 cartas en la mano.
+83,Ganas +1 de Honor por cada carta que falte en tu castillo. Solo en tu turno.
+84,Robas 1 carta por cada guerrero del rival en juego y 2 por cada Daimyo. Solo en tu turno y si el rival tiene personajes en juego.
+85,Descartas 3 cartas y bajas gratis un guerrero de coste 2 de tu mano (eliges cuál). Necesitas lugar en tu zona. No gasta tu bajada del turno y activa sus efectos al entrar.
+86,Descartas 4 cartas y bajas gratis un guerrero de coste 3 de tu mano (eliges cuál). Necesitas lugar en tu zona. Activa sus efectos al entrar.
+87,"Solo si peleas con un Ronin, antes de lanzar: descartas X cartas de tu mano; por cada Ronin descartado, +1 dado (máximo 7)."
+88,La próxima carta de tu mazo va a tu castillo sin girarla (el castillo nunca pasa de 7). El doble con Yoshiteru.
+89,"Pones hasta 2 cartas de lo alto de tu mazo como fichas «Soldado del castillo» (1/1 Ronin sin efecto) que ocupan espacios del campo. Al morir, la carta real va al pozo."
+90,Queda en juego (uno por jugador). Con la habilidad «Complejo» envías un héroe al templo: no ataca ni defiende y vuelve tras 2 de tus turnos con +1 de ataque permanente. Capacidad 1 (+1 con Rennyo).
+91,Si tienes 2 o más Ninja en juego: robas 2 cartas y tu próximo Ninja que pelee tira +1 dado.
+92,"Si tienes 3 héroes en juego de distintos clanes: los descartas, luego descartas X cartas de tu mano y generas X de Honor (tu Honor total no pasa de 6)."
+93,"Antes de lanzar, en un duelo: si tu Daimyo activo está solo (sin pasivos), +2 dados."
+94,"Después de lanzar los dados, eliges UNO de tus dados y su resultado se duplica."
+95,Robas 5 cartas y tu turno termina. Solo en tu turno.
+96,"Giratoria: se coloca boca abajo (máx. 2). Cuando un héroe tuyo muere en un duelo, recibes su coste de Honor y la carta va al pozo."
+97,"Nombras un clan (no Ninja ni Ronin). Si los próximos 3 héroes que bajas son de ese clan, generas 3 de Honor; si bajas uno de otro clan, se pierde."
+98,"Giratoria: se coloca boca abajo (máx. 2). Si pierdes un duelo por más de 2 puntos de diferencia, +3 de Honor; si la diferencia es 2 o menos, sigue boca abajo."
+99,"Eliges 3 héroes de tu pozo y los pones en tu mano (si hay menos, los que haya)."
