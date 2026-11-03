@@ -21,6 +21,7 @@ var gal_info: Label
 var gal_ids: Array = []
 var play_screen: Control
 var guide: Control
+var credits: Control
 var guide_page := 0
 var guide_title: Label
 var guide_body: Label
@@ -76,6 +77,7 @@ func _ready() -> void:
 	_build_gallery()
 	_build_campaign()
 	_build_guide()
+	_build_credits()
 	viewer = CardViewer.new()
 	add_child(viewer)
 	if GameConfig.start_screen == "campana":
@@ -85,7 +87,7 @@ func _ready() -> void:
 		_show(home)
 
 func _show(c: Control) -> void:
-	for s in [home, play_screen, editor, gallery, campaign, guide]:
+	for s in [home, play_screen, editor, gallery, campaign, guide, credits]:
 		s.visible = (s == c)
 	if c == play_screen:
 		_refresh_play()
@@ -166,6 +168,8 @@ func _build_home() -> void:
 	vb.add_child(_btn("Constructor de mazos", "go", func(): _show(editor), 24))
 	vb.add_child(_btn("Galería de cartas", "end", func(): _show(gallery), 24))
 	vb.add_child(_btn("Aprender a Jugar", "go", func(): guide_page = 0; _refresh_guide(); _show(guide), 24))
+	vb.add_child(_btn("Tutorial rápido (1 minuto)", "good", _start_tutorial_game, 20))
+	vb.add_child(_btn("Créditos", "neutral", func(): _show(credits), 18))
 	vb.add_child(_btn("Salir", "neutral", func(): get_tree().quit(), 20))
 
 # ------------------------------------------------------------------ elegir mazos para jugar
@@ -894,3 +898,40 @@ func _season_picker() -> OptionButton:
 		ob.add_item(n)
 	ob.select(GameConfig.season)
 	return ob
+
+func _start_tutorial_game() -> void:
+	GameConfig.deck_me = DeckStore.preset_deck(4)     # mazo Unificadores
+	GameConfig.deck_opp = DeckStore.preset_deck(1)
+	GameConfig.name_me = "Unificadores"
+	GameConfig.name_opp = "Espadas Ronin"
+	GameConfig.campaign_level = 0
+	GameConfig.tutorial = true
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+func _build_credits() -> void:
+	credits = _screen()
+	var cc := CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	credits.add_child(cc)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _box(Color(0.08, 0.07, 0.06, 0.95), Color(1.0, 0.85, 0.3)))
+	cc.add_child(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	panel.add_child(row)
+	var pic := TextureRect.new()
+	pic.texture = ExtraArt.creator()
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.custom_minimum_size = Vector2(300, 500)
+	row.add_child(pic)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	vb.custom_minimum_size = Vector2(520, 0)
+	row.add_child(vb)
+	vb.add_child(_lbl("Créditos", 34, Color(1.0, 0.85, 0.3)))
+	vb.add_child(_lbl("El Creador del juego", 24, Color(0.85, 0.95, 1.0)))
+	var t := _lbl("Sueño del Shogun 1: diseño del juego, ilustraciones y reglas de Camilo Estay (© 2016-2017). Todos los derechos reservados.\n\nMotor: Godot Engine 4.3 (licencia MIT).\nFuente de la interfaz: Shippori Mincho (SIL Open Font License 1.1).\n\nProgramación del videojuego asistida por Claude (Anthropic).", 17, Color(0.9, 0.9, 0.9))
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(t)
+	vb.add_child(_btn("◀ Menú", "neutral", func(): _show(home), 18))

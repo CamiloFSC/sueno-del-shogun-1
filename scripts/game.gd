@@ -31,6 +31,7 @@ var attacked_this_turn := false
 var cost_tax: Array = []         # impuestos de Honor temporales (Yoshiharu): {player, clan, turn}
 var duel_id := 0                # sube en cada duelo; la UI lo usa para animar
 var last_duel: Dictionary = {}   # resultado del último duelo de dados (para la interfaz)
+var first_player := -1           # -1 = al azar (el tutorial fuerza 0 = el jugador)
 var ai_level := 1                # dificultad de la IA rival (jugador 1): 0 Fácil .. 3 Pesadilla (hace trampa)
 var sfx_enabled := false         # la interfaz lo activa para recibir avisos de sonido
 var sfx: Array = []              # sonidos pendientes: "dados", "espadas", "barajar", "robar", "descartar"
@@ -73,7 +74,7 @@ func setup(deck_a: Array, deck_b: Array, seed_value: int = 0, names: Array = ["J
 			players[p].hand.append(players[p].deck.pop_back())
 		for i in CASTLE_SIZE:
 			players[p].castle.append(players[p].deck.pop_back())
-	turn_player = rng.randi() % 2
+	turn_player = first_player if first_player >= 0 else rng.randi() % 2
 	_sfx("barajar")
 	_log("Empieza %s." % players[turn_player].name)
 	_start_turn()

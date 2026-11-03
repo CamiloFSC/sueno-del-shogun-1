@@ -242,3 +242,6 @@ Pendiente: cartas giratorias 72/73/81 (¿cuándo se revelan?) y 96/98.
 
 ## 33. Arte del autor integrado
 assets/fondos (4 estaciones x campo/castillo; selector «Fondo» en Jugar y en el duelo de campaña; el tablero usa el campo), assets/castillo (7 etapas: el castillo cambia al perder cartas en el ataque directo), assets/personajes (poses alternativas de Daimyo 55, 56, 57, 58, 59, 62 que aparecen al ganar un duelo; shogun.png al completar la campaña; creador.png). Todo mediante ExtraArt (extra_art.gd).
+
+## 34. Tutorial, créditos y fuente
+Menú: «Tutorial rápido (1 minuto)» abre una partida guiada (tutorial_overlay.gd): 7 pasos de ~8,5 s con flechas sobre el tablero real; el jugador empieza (Game.first_player) y la IA va en nivel Fácil. «Créditos» muestra la imagen del Creador. Fuente de la interfaz: Shippori Mincho Bold (OFL) en assets/fuentes/ (si se agrega un archivo con «harukaze» en el nombre, tiene prioridad).

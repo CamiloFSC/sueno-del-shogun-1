@@ -97,10 +97,15 @@ func _new_game() -> void:
 		var fuertes := [4, 0]   # Unificadores, Sombras Ninja (los de más victorias en el análisis de balance)
 		var pk: int = fuertes[rng.randi() % fuertes.size()]
 		deck_opp = DeckStore.preset_deck(pk)
+	if GameConfig.tutorial:
+		g.first_player = 0
 	g.setup(deck_me, deck_opp, rng.randi(), ["Tú", "Rival IA"])
-	g.ai_level = GameConfig.difficulty
+	g.ai_level = 0 if GameConfig.tutorial else GameConfig.difficulty
 	g.changed.connect(_refresh)
 	_refresh()
+	if GameConfig.tutorial:
+		GameConfig.tutorial = false
+		_start_tutorial()
 
 # ------------------------------------------------------------------ construcción
 
@@ -1457,3 +1462,19 @@ func _show_shogun() -> void:
 	layer.modulate.a = 0.0
 	add_child(layer)
 	create_tween().tween_property(layer, "modulate:a", 1.0, 1.2)
+
+
+## Tutorial de ~1 minuto: 7 pasos que señalan el tablero real.
+func _start_tutorial() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var tut := TutorialOverlay.new()
+	add_child(tut)
+	tut.start([
+		{"target": castle_me, "dir": "left", "text": "Este es TU CASTILLO: 7 cartas. Cada vez que un personaje tuyo muere, pierdes una. Si se acaban, pierdes la partida. Lo mismo vale para el castillo del rival."},
+		{"target": info_me, "dir": "up", "text": "El HONOR es tu dinero. Ganas 1 al empezar cada turno y lo gastas para bajar guerreros a la mesa."},
+		{"target": hand_scroll, "dir": "down", "text": "Esta es tu MANO. Las cartas con borde dorado se pueden bajar con tu Honor actual. Con el mouse encima, el botón Zoom las muestra en grande; también puedes arrastrar la mano de lado."},
+		{"target": zone_me, "dir": "down", "text": "Tu CAMPO: 1 guerrero ACTIVO (el que pelea) y hasta 3 PASIVOS en espera. Una vez por turno puedes cambiar un pasivo por el activo."},
+		{"target": bar, "dir": "down", "text": "Aquí atacas: al guerrero rival (duelo obligatorio) o al castillo (el rival puede resistir). Luego pulsas «Terminar turno»."},
+		{"target": log_box, "dir": "left", "text": "En un DUELO cada guerrero tira tantos dados como su ATAQUE. Gana el total más alto; el perdedor muere. Aquí verás el registro y los dados."},
+		{"target": pile_deck[0], "dir": "up", "text": "Tu MAZO y tu POZO de descarte. Si tu mazo se acaba, pierdes. ¡Listo! Baja un guerrero, ataca y destruye el castillo rival. Suerte, Shogun."}])
