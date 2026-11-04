@@ -36,6 +36,7 @@ var ai_level := 1                # dificultad de la IA rival (jugador 1): 0 Fác
 var sfx_enabled := false         # la interfaz lo activa para recibir avisos de sonido
 var sfx: Array = []              # sonidos pendientes: "dados", "espadas", "barajar", "robar", "descartar"
 var toasts: Array = []           # mensajes emergentes pendientes (efectos giratorios revelados, etc.)
+var bushi_ctx := {}              # contexto de la carta Bushi en curso (para la escena en primer plano)
 var moves: Array = []            # movimientos de cartas para animar: {k: deck_hand|castle_hand|field_discard|hand_discard, p, id}
 
 # ---------------------------------------------------------------- avisos para la interfaz
@@ -223,11 +224,23 @@ func play_action(hand_index: int) -> bool:
 		pl.discard.append(id)
 		_fx("hand_discard", p, id)
 	_log("%s juega %s." % [pl.name, card(id).nombre])
+	bushi_ctx = {"p": p, "id": id, "l0": log_lines.size(), "hand0": pl.hand.size(), "dice": []}
+	_fx("bushi", p, id)
 	run_steps([func(): Effects.apply(self, p, id)], func(): _finish_action(p, id))
 	changed.emit()
 	return true
 
+## Dado lanzado por una carta Bushi (la escena en primer plano lo muestra rodando).
+func note_die(v: int) -> void:
+	if not bushi_ctx.is_empty():
+		bushi_ctx.dice.append(v)
+
 func _finish_action(p: int, id: int) -> void:
+	if not bushi_ctx.is_empty() and bushi_ctx.id == id and sfx_enabled:
+		var lines: Array = log_lines.slice(bushi_ctx.l0)
+		var drawn: int = maxi(0, players[p].hand.size() - bushi_ctx.hand0)
+		moves.append({"k": "bushi_fx", "p": p, "id": id, "lines": lines, "dice": bushi_ctx.dice.duplicate(), "draw": drawn})
+	bushi_ctx = {}
 	if phase == "OVER":
 		return
 	run_steps(Effects.bushi_played_steps(self, p, id), func():

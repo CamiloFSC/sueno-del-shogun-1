@@ -30,6 +30,12 @@ var preview_tex: TextureRect
 var duel_busy := false
 var narr: Narrator = null
 var cameo_seen := {}
+var banner: PanelContainer = null
+var banner_title: Label
+var banner_sub: Label
+var banner_key := ""
+var banner_until := 0
+var banner_tween: Tween = null
 var nar_prev := {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
 var zoom_btn: Button
 var zoom_id := 0
@@ -1045,6 +1051,7 @@ func _info(p: int) -> String:
 		pl.hand.size(), pl.deck.size(), pl.discard.size(), ccol, ccol, cc]
 
 func _refresh() -> void:
+	_turn_banner()
 	_narrate()
 	_hide_preview()
 	_zoom_hide_now()
@@ -1237,19 +1244,25 @@ func _refresh() -> void:
 	if not g.moves.is_empty():
 		var batch: Array = g.moves.duplicate()
 		g.moves.clear()
-		var duel := {}
+		var scenes := []                      # escenas en primer plano, en orden: carta Bushi, su efecto, duelo
 		var rest := []
 		for m in batch:
 			if m.k == "duel" or m.k == "castle_hit":
-				duel = m
+				scenes = scenes.filter(func(s): return s.k != "duel" and s.k != "castle_hit")   # solo el último duelo
+				scenes.append(m)
+			elif m.k == "bushi" or m.k == "bushi_fx":
+				scenes.append(m)
 			else:
 				rest.append(m)
-		if duel.is_empty():
+		if scenes.is_empty():
 			_play_moves(rest)
 		else:
-			_play_duel(duel, rest)
+			_play_duel(scenes, rest)
 	if g.phase != "OVER" and g.actor() != HUMAN:
-		ai_timer.start(1.9 if Time.get_ticks_msec() < dice_anim_end else 0.8)
+		var wait := 1.9 if Time.get_ticks_msec() < dice_anim_end else 0.8
+		if Time.get_ticks_msec() < banner_until:           # que se alcance a leer el aviso de turno
+			wait = maxf(wait, float(banner_until - Time.get_ticks_msec()) / 1000.0 + 0.3)
+		ai_timer.start(wait)
 
 const BTN_COLORS := {
 	"attack": Color(0.78, 0.15, 0.15),   # rojo: atacar guerrero
@@ -1333,13 +1346,31 @@ func _hand_rect(p: int, index_from_end: int) -> Rect2:
 		return hand_box.get_global_rect()
 	return Rect2(size.x * 0.42, -FLY_H - 20.0, FLY_W, FLY_H)       # la mano rival está "fuera de pantalla", arriba
 
-func _play_duel(ev: Dictionary, rest: Array) -> void:
+func _play_duel(scenes: Array, rest: Array) -> void:
 	if GameConfig.duel_anim and DisplayServer.get_name() != "headless":
 		duel_busy = true
+		for ev in scenes:
+			await _play_scene(ev)
+		duel_busy = false
+	if not rest.is_empty():
+		_play_moves(rest)
+
+func _play_scene(ev: Dictionary) -> void:
+	if true:
 		await get_tree().process_frame
 		_hide_preview()
 		_zoom_hide_now()
-		if ev.k == "castle_hit":
+		if ev.k == "bushi" or ev.k == "bushi_fx":
+			var bs := BushiScene.new()
+			add_child(bs)
+			var binfo := {"name": g.players[ev.p].name, "card": g.card(ev.id), "tex": CardArt.get_texture(ev.id)}
+			if ev.k == "bushi":
+				await bs.play_card(ev, binfo, sfx_bank)
+			elif ev.lines.size() > 0 or ev.dice.size() > 0:
+				await bs.play_fx(ev, binfo, sfx_bank)
+			else:
+				bs.queue_free()
+		elif ev.k == "castle_hit":
 			var hs := CastleHitScene.new()
 			add_child(hs)
 			await hs.play_hit(ev, {
@@ -1354,9 +1385,6 @@ func _play_duel(ev: Dictionary, rest: Array) -> void:
 				"cards": [g.card(ids[0]), g.card(ids[1])],
 				"tex": [CardArt.get_texture(ids[0]), CardArt.get_texture(ids[1])]}
 			await sc.play(ev, info, sfx_bank)
-		duel_busy = false
-	if not rest.is_empty():
-		_play_moves(rest)
 
 func _play_moves(batch: Array) -> void:
 	await get_tree().process_frame            # esperar a que el tablero termine de acomodarse
@@ -1587,3 +1615,58 @@ func _narrate() -> void:
 		nar_prev["m1"] = narr.say("mid1", t)
 	elif t >= 11 and not nar_prev.get("m2", false):
 		nar_prev["m2"] = narr.say("mid2", t)
+
+
+## Aviso grande al empezar cada turno (para quien aún se familiariza con la interfaz).
+func _turn_banner() -> void:
+	if g == null or g.phase == "OVER" or g.turn_number < 1:
+		return
+	var key := "%d_%d" % [g.turn_number, g.turn_player]
+	if key == banner_key:
+		return
+	banner_key = key
+	var mine: bool = g.turn_player == HUMAN
+	if banner == null:
+		banner = PanelContainer.new()
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		banner.z_index = 170
+		banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		var vb := VBoxContainer.new()
+		vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		banner.add_child(vb)
+		banner_title = Label.new()
+		banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner_title.add_theme_font_size_override("font_size", 52)
+		banner_title.add_theme_color_override("font_outline_color", Color.BLACK)
+		banner_title.add_theme_constant_override("outline_size", 10)
+		vb.add_child(banner_title)
+		banner_sub = Label.new()
+		banner_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner_sub.add_theme_font_size_override("font_size", 20)
+		banner_sub.add_theme_color_override("font_color", Color(1, 0.96, 0.85))
+		vb.add_child(banner_sub)
+		add_child(banner)
+	var accent := Color(1.0, 0.85, 0.25) if mine else Color(0.95, 0.35, 0.3)
+	banner.add_theme_stylebox_override("panel", _style(Color(0.05, 0.04, 0.03, 0.88), accent, 4))
+	banner_title.add_theme_color_override("font_color", accent)
+	banner_title.text = "¡TU TURNO!" if mine else "TURNO DEL RIVAL"
+	var hon: int = g.players[g.turn_player].honor
+	if mine:
+		banner_sub.text = "Turno %d · Honor %d · Baja guerreros, juega Bushi, ataca y pulsa «Terminar turno»." % [g.turn_number, hon]
+	else:
+		banner_sub.text = "Turno %d · %s está jugando. Espera tu turno." % [g.turn_number, g.players[1].name]
+	banner.reset_size()
+	var S := get_viewport_rect().size
+	banner.position = Vector2(S.x * 0.5 - banner.size.x * 0.5, S.y * 0.30)
+	if banner_tween != null and banner_tween.is_valid():
+		banner_tween.kill()
+	banner.modulate.a = 0.0
+	banner.scale = Vector2(0.85, 0.85)
+	banner.pivot_offset = banner.size * 0.5
+	banner_until = Time.get_ticks_msec() + 1700
+	banner_tween = create_tween()
+	banner_tween.tween_property(banner, "modulate:a", 1.0, 0.2)
+	banner_tween.parallel().tween_property(banner, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	banner_tween.tween_interval(1.1)
+	banner_tween.tween_property(banner, "modulate:a", 0.0, 0.4)

@@ -337,6 +337,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 			g._log("Deshonor: %s paga 1 de Honor; %d dado(s) de %s bajan 1 punto (total %d)." % [pl.name, n, op.name, r.total])
 		75:  # El Nakasendo: lanzas un dado y robas esa cantidad de cartas
 			var r: int = g.rng.randi_range(1, 6)
+			g.note_die(r)
 			g._log("El Nakasendo: %s lanza un dado: %d. Roba %d carta(s)." % [pl.name, r, r])
 			g.draw(p, r)
 		78:  # (imagen 78) tu primer dado del próximo lanzamiento vale 6
