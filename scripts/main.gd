@@ -36,6 +36,7 @@ var banner_sub: Label
 var banner_key := ""
 var banner_until := 0
 var banner_tween: Tween = null
+var honor_hold := {}              # jugador -> Honor que se sigue mostrando hasta que llegue la animación
 var nar_prev := {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
 var zoom_btn: Button
 var zoom_id := 0
@@ -1074,8 +1075,8 @@ func _refresh() -> void:
 	info_me.text = _info(0)
 	info_opp.get_meta("tag").text = g.players[1].name
 	info_me.get_meta("tag").text = g.players[0].name
-	badge_opp.value = g.players[1].honor
-	badge_me.value = g.players[0].honor
+	badge_opp.value = honor_hold.get(1, g.players[1].honor)
+	badge_me.value = honor_hold.get(0, g.players[0].honor)
 	castle_opp.count = g.players[1].castle.size()
 	castle_me.count = g.players[0].castle.size()
 	_draw_dice()
@@ -1626,6 +1627,9 @@ func _turn_banner() -> void:
 		return
 	banner_key = key
 	var mine: bool = g.turn_player == HUMAN
+	var badge: HonorBadge = badge_me if mine else badge_opp
+	var old_honor: int = badge.value
+	var new_honor: int = g.players[g.turn_player].honor
 	if banner == null:
 		banner = PanelContainer.new()
 		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1670,3 +1674,43 @@ func _turn_banner() -> void:
 	banner_tween.parallel().tween_property(banner, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	banner_tween.tween_interval(1.1)
 	banner_tween.tween_property(banner, "modulate:a", 0.0, 0.4)
+	if new_honor > old_honor and DisplayServer.get_name() != "headless":
+		honor_hold[g.turn_player] = old_honor
+		banner_until += 1000
+		var tp: int = g.turn_player
+		get_tree().create_timer(1.35).timeout.connect(func(): _honor_fly(tp, new_honor - old_honor, new_honor))
+
+## El círculo amarillo de Honor baja del aviso, se achica y se convierte en el marcador de Honor de la derecha.
+func _honor_fly(p: int, gain: int, final_value: int) -> void:
+	var badge: HonorBadge = badge_me if p == HUMAN else badge_opp
+	if g == null or not is_instance_valid(badge):
+		honor_hold.erase(p)
+		return
+	var S := get_viewport_rect().size
+	var big := 130.0
+	var disc := HonorBadge.new()
+	disc.custom_minimum_size = Vector2(big, big)
+	disc.size = Vector2(big, big)
+	disc.z_index = 172
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.value = gain
+	disc.pivot_offset = Vector2(big, big) * 0.5
+	disc.position = Vector2(S.x * 0.5 - big * 0.5, S.y * 0.30 + 40.0)
+	disc.scale = Vector2(0.4, 0.4)
+	add_child(disc)
+	sfx_bank.play("aviso")
+	var target := badge.get_global_rect().get_center() - Vector2(big, big) * 0.5
+	var k: float = badge.size.x / big
+	var tw := create_tween()
+	tw.tween_property(disc, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.25)
+	tw.tween_property(disc, "position", target, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.parallel().tween_property(disc, "scale", Vector2(k, k), 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(func():
+		disc.queue_free()
+		honor_hold.erase(p)
+		badge.value = g.players[p].honor
+		badge.pivot_offset = badge.size * 0.5
+		var pop := create_tween()
+		pop.tween_property(badge, "scale", Vector2(1.5, 1.5), 0.12)
+		pop.tween_property(badge, "scale", Vector2.ONE, 0.18))
