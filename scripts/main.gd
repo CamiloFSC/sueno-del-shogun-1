@@ -9,8 +9,8 @@ const HELP := "CÓMO JUGAR\n\n1. Cada turno ganas +1 Honor y robas 1 carta.\n2. 
 var g: Game
 var rng := RandomNumberGenerator.new()
 var ai_timer: Timer
-var info_opp: Label
-var info_me: Label
+var info_opp: RichTextLabel
+var info_me: RichTextLabel
 var badge_opp: HonorBadge
 var badge_me: HonorBadge
 var dice_panel: VBoxContainer
@@ -28,6 +28,7 @@ var choice_for := 0
 var preview_tex: TextureRect
 var duel_busy := false
 var narr: Narrator = null
+var cameo_seen := {}
 var nar_prev := {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
 var zoom_btn: Button
 var zoom_id := 0
@@ -194,6 +195,14 @@ func _build_ui() -> void:
 		GameConfig.duel_anim = not GameConfig.duel_anim
 		dz.text = "Duelo 2D: sí" if GameConfig.duel_anim else "Duelo 2D: no")
 	tools.add_child(dz)
+	var cm := Button.new()
+	cm.text = "Comentarios: sí" if GameConfig.cameos else "Comentarios: no"
+	cm.focus_mode = Control.FOCUS_NONE
+	cm.tooltip_text = "Los personajes salen a comentar cuando aparece su carta o la de su familia y rivales"
+	cm.pressed.connect(func():
+		GameConfig.cameos = not GameConfig.cameos
+		cm.text = "Comentarios: sí" if GameConfig.cameos else "Comentarios: no")
+	tools.add_child(cm)
 	var hb := Button.new()
 	hb.text = "? Ayuda"
 	hb.focus_mode = Control.FOCUS_NONE
@@ -218,7 +227,7 @@ func _build_ui() -> void:
 	log_box.scroll_following = true
 	logp.add_child(log_box)
 	var dp := PanelContainer.new()
-	dp.custom_minimum_size = Vector2(0, 190)
+	dp.visible = false                      # los dados ya se ven en la escena del duelo: el registro ocupa ese espacio
 	dp.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.55), Color(0.5, 0.42, 0.25), 1))
 	side.add_child(dp)
 	var dice_scroll := ScrollContainer.new()
@@ -486,22 +495,30 @@ func _build_ui() -> void:
 	add_child(ai_timer)
 
 func _info_row(parent: Node) -> Array:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	parent.add_child(v)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
-	parent.add_child(h)
+	v.add_child(h)
 	var t := Label.new()
 	t.text = "HONOR"
 	t.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
 	h.add_child(t)
 	var b := HonorBadge.new()
 	h.add_child(b)
-	var l := Label.new()
-	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var l := RichTextLabel.new()
+	l.bbcode_enabled = true
+	l.fit_content = true
+	l.scroll_active = false
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(120, 0)
-	l.add_theme_font_size_override("font_size", 14)
-	h.add_child(l)
+	l.custom_minimum_size = Vector2(250, 0)
+	l.add_theme_font_size_override("normal_font_size", 18)
+	l.add_theme_font_size_override("bold_font_size", 21)
+	v.add_child(l)
+	var tag := Label.new()                 # nombre del jugador junto al Honor
+	h.add_child(tag)
+	l.set_meta("tag", tag)
 	return [l, b]
 
 func _style_btn(b: Button, kind: String) -> void:
@@ -1013,8 +1030,10 @@ func _add_attack_badge(btn: Button, p: int) -> void:
 
 func _info(p: int) -> String:
 	var pl = g.players[p]
-	return "%s\nMano %d · Mazo %d · Castillo %d/7 · Pozo %d" % [
-		pl.name, pl.hand.size(), pl.deck.size(), pl.castle.size(), pl.discard.size()]
+	var cc: int = pl.castle.size()
+	var ccol := "#ff6b5a" if cc <= 2 else ("#ffd54a" if cc <= 4 else "#8fe388")
+	return "[color=#9ec9ff]Mano[/color] [b]%d[/b]   [color=#9ec9ff]Mazo[/color] [b]%d[/b]   [color=#9ec9ff]Pozo[/color] [b]%d[/b]\n[color=%s]Castillo[/color] [b][color=%s]%d/7[/color][/b]" % [
+		pl.hand.size(), pl.deck.size(), pl.discard.size(), ccol, ccol, cc]
 
 func _refresh() -> void:
 	_narrate()
@@ -1037,6 +1056,8 @@ func _refresh() -> void:
 		g.toasts.clear()
 	info_opp.text = _info(1)
 	info_me.text = _info(0)
+	info_opp.get_meta("tag").text = g.players[1].name
+	info_me.get_meta("tag").text = g.players[0].name
 	badge_opp.value = g.players[1].honor
 	badge_me.value = g.players[0].honor
 	castle_opp.count = g.players[1].castle.size()
@@ -1490,11 +1511,13 @@ func _setup_narrator() -> void:
 		narr.queue_free()
 		narr = null
 	nar_prev = {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
+	cameo_seen = {}
 	var lv: int = GameConfig.campaign_level
+	narr = Narrator.new()                     # siempre existe: los cameos funcionan en toda partida
+	add_child(narr)
+	narr.setup([], [])
 	if lv > 0 and lv <= CampaignStore.count():
 		var info: Dictionary = CampaignStore.LEVELS[lv - 1]
-		narr = Narrator.new()
-		add_child(narr)
 		var chars: Array = info.chars.duplicate()
 		var allies: Array = []
 		if info.has("bando"):                     # duelo 1: el aliado elegido es el primero que habla y te aconseja
@@ -1504,8 +1527,25 @@ func _setup_narrator() -> void:
 			allies = [ally]
 		narr.setup(chars, allies)
 
+## Un personaje sale a comentar cuando entra en juego su carta, la de su familia o la de un rival.
+func _cameos() -> void:
+	if not GameConfig.cameos or g.phase == "OVER":
+		return
+	for p in 2:
+		var pl = g.players[p]
+		var ids: Array = [pl.active] + pl.passive
+		for id in ids:
+			if id == 0 or cameo_seen.has(id * 2 + p):
+				continue
+			cameo_seen[id * 2 + p] = true
+			if narr.cameo(id, g.card(id).nombre, p == 0, g.turn_number):
+				return
+
 func _narrate() -> void:
 	if narr == null or g == null or not is_instance_valid(narr):
+		return
+	_cameos()
+	if narr.chars.is_empty():
 		return
 	var c0: int = g.players[0].castle.size()
 	var c1: int = g.players[1].castle.size()

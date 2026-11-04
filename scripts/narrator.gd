@@ -279,3 +279,70 @@ func hide_now() -> void:
 	_tween.set_parallel(true)
 	for n in [_pic, _bubble, _tail]:
 		_tween.tween_property(n, "modulate:a", 0.0, 0.25)
+
+# ------------------------------------------------------------------ cameos: el personaje aparece cuando sale su carta (o la de su familia / rivales)
+## Carta de Daimyo de cada personaje (el Creador no tiene carta).
+const CARD_OF := {"nobunaga": 55, "hideyoshi": 56, "tokugawa": 57, "shingen": 58, "kenshin": 59, "masamune": 60, "tenzo": 61, "mitsunari": 62}
+## Cartas de su familia / clan / séquito: reaccionan con las líneas "kin".
+const KIN := {
+	"nobunaga": [19, 20, 21], "hideyoshi": [22, 23, 24], "tokugawa": [25, 26, 27], "shingen": [28, 29, 30],
+	"kenshin": [31, 32, 33, 34, 35, 36, 66], "masamune": [46, 47, 48], "tenzo": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+	"mitsunari": [10, 11, 12, 13, 14, 15, 16, 17, 18]}
+## Rivales o conocidos (ids de carta) que provocan un comentario especial: {personaje: {carta: [líneas]}}. {n} = nombre de la carta.
+const RIVAL_LINES := {
+	"nobunaga": {69: ["¿{n}? Mira nada más. Siempre supe que con ese té había gato encerrado.", "{n} otra vez. Si lo ves con una antorcha, avísame."], 58: ["{n}... el Tigre de Kai. Le gusta hacerse el difícil."], 59: ["{n}. Me ganó en Tedorigawa... ah no, esa la gané yo."], 56: ["{n}, mi viejo Mono. ¿Aún me calientas las sandalias?"], 66: ["{n}: monjes, templos... ¿alguien trajo antorchas?"]},
+	"hideyoshi": {57: ["{n}, el que esperó. Ya veremos quién se sienta al final."], 62: ["{n}, mi querido administrador. Me trajo té tres veces. Se le perdona todo."], 55: ["{n}, mi señor... ¡qué recuerdos! Sandalias tibias."], 69: ["{n}. Lo vencí en Yamazaki. Fue un día de campo."], 60: ["{n}: llegó tarde y vestido de blanco. Qué dramático."]},
+	"tokugawa": {58: ["{n}. Mikatagahara... mejor no hablemos del tema."], 56: ["{n}: el Mono. Me mandó a Edo. Y ahí me quedé. Gracias."], 62: ["{n}: te vi llegar a Sekigahara. Ya sabías cómo acaba."], 60: ["{n}: me caes bien... desde lejos."]},
+	"shingen": {59: ["{n}. Si trae sal, que se la quede. Si trae sake, que pase."], 57: ["{n}: lo hice correr en Mikatagahara. Aún me río."], 55: ["{n}: me teme. Sé que me teme."]},
+	"kenshin": {58: ["{n}, mi rival favorito. Nos vemos otra vez... con respeto."], 55: ["{n}: arderá como arde un bosque seco. Que no se acerque a Echigo."]},
+	"masamune": {56: ["{n}: llegué tarde a su fiesta, es verdad. Pero lo hice con estilo."], 57: ["{n}: el que ganó al final. Qué paciencia, qué aburrimiento."], 62: ["{n}: tan serio. ¿Nadie le dijo que hay sake?"]},
+	"tenzo": {55: ["{n}: arrasó Iga. Los ninja no olvidamos... ni perdonamos."], 57: ["{n}: cruzó Iga huyendo, con nuestra ayuda. Y nadie nos agradeció."]},
+	"mitsunari": {57: ["{n}: Sekigahara... mejor no hablemos de mi cuenta de resultados."], 56: ["{n}: mi señor. Todo lo que soy, se lo debo. Y el té."], 15: ["{n}: el ronin más valiente. Me cae bien."]}}
+## Líneas cuando sale la carta del propio personaje: "me" = la juegas tú, "foe" = el rival.
+const CAMEO_SELF := {
+	"nobunaga": {"me": ["¡Otra vez sin mí no sabes ganar! Así me gusta: dependiente.", "Me bajas porque sabes que arde mejor con fuego."], "foe": ["¿Mi carta en manos del rival? Cuida el castillo: voy a visitarlo."]},
+	"hideyoshi": {"me": ["¡Veo que de nuevo no podías abordar esta batalla sin mí, jugador!", "Trepé de sandalias a Regente. Tú de mano a campo: bienvenido."], "foe": ["Esa soy yo... pero con otro jefe. Un ascenso doble."]},
+	"tokugawa": {"me": ["La paciencia paga: me dejaste para el final y llegué igual.", "Me bajaste. No me apuro. Pero ya estoy aquí."], "foe": ["Mi carta en la mesa del rival. Esperaré, claro."]},
+	"shingen": {"me": ["¿Necesitas al Tigre de Kai? Está bien, pero no me mires tanto el abanico.", "Rápido como el viento... y tú llamándome tarde."], "foe": ["Que el rival me use es un honor. Y un error."]},
+	"kenshin": {"me": ["Bishamonten me mira y tú me bajas. Buen gusto, discípulo.", "¡Aquí está el Dragón de Echigo! Pero no traigo sal."], "foe": ["Mi carta con el rival... Que beba con honor."]},
+	"masamune": {"me": ["¡Llegué! A tiempo esta vez. Tarde llegué a la historia, no a tu mano.", "Un ojo basta para ver que me necesitabas."], "foe": ["Ese dragón es mío, pero te lo presto. Sin garantía."]},
+	"tenzo": {"me": ["Ya estoy aquí. Llevo un rato detrás de ti. Tranquilo.", "¿Me llamaste? Nunca te fallo... pero tampoco me ves."], "foe": ["Me usa el rival. Pronto cambiará de opinión."]},
+	"mitsunari": {"me": ["Perfecto, es lo único que faltaba en el balance. Gracias por contar conmigo.", "Que quede en actas: pediste mi presencia y yo cumplí."], "foe": ["El rival me usa. Espero que sepa de contabilidad."]}}
+## Líneas cuando sale un pariente o miembro de su clan: {n} = nombre de la carta.
+const CAMEO_KIN := {
+	"nobunaga": ["¡{n}! Sangre de mi sangre. Que arda con el resto.", "{n} entra en la mesa. Qué orgullo (y qué miedo)."],
+	"hideyoshi": ["¡{n}! Parte de mi dinastía. Al menos esta carta me hace honor.", "{n} ha entrado. Mi castillo de oro se alegra."],
+	"tokugawa": ["{n}, de los míos. Calma, que el tiempo juega a favor.", "{n} se une. Siempre hay lugar para la paciencia."],
+	"shingen": ["{n} se baja. Ese es de mi caballería, no lo olviden.", "¡{n}! Que el viento y el fuego lo acompañen."],
+	"kenshin": ["{n} está de mi lado. Que la justicia lo guíe.", "Mi gente, {n}, a la batalla. Con honor, por favor."],
+	"masamune": ["{n}, de mi clan. Estilo Date, siempre.", "¡Ahí viene {n}! Que lo vean bien: somos elegantes."],
+	"tenzo": ["{n} se aparece. Ninja de mi gente. Nadie lo oyó llegar.", "{n} está en el campo. Tranquilos, no lo van a ver."],
+	"mitsunari": ["{n}, un ronin. Pagan poco, pero pelean bien.", "{n}: hay que anotar su paga. Honor, 1."]}
+
+var _cameo_turn := -99
+var cameo_count := 0
+var _cameo_ids := {}
+
+## Reacciona a que una carta entra en juego. Devuelve true si algún personaje salió a comentar.
+func cameo(card_id: int, card_name: String, mine: bool, turn: int) -> bool:
+	if _cameo_ids.has(card_id) or cameo_count >= 12 or turn - _cameo_turn < 2 or _timer.time_left > 0.0:
+		return false
+	var cands: Array = []
+	for who in CARD_OF:
+		if CARD_OF[who] == card_id:
+			cands.append([who, CAMEO_SELF[who]["me" if mine else "foe"]])
+		elif RIVAL_LINES[who].has(card_id):
+			cands.append([who, RIVAL_LINES[who][card_id]])
+		elif KIN[who].has(card_id):
+			cands.append([who, CAMEO_KIN[who]])
+	if cands.is_empty():
+		return false
+	# solo cartas «de personaje» propias o parientes: prioriza al dueño de la carta
+	cands.sort_custom(func(a, b): return int(CARD_OF[a[0]] == card_id) > int(CARD_OF[b[0]] == card_id))
+	var pick: Array = cands[0] if CARD_OF.get(cands[0][0], -1) == card_id else cands[randi() % cands.size()]
+	var line: String = pick[1][randi() % pick[1].size()].replace("{n}", card_name)
+	_cameo_ids[card_id] = true
+	_cameo_turn = turn
+	cameo_count += 1
+	_show(pick[0], line, CARD_OF[pick[0]] == card_id and mine)
+	return true
