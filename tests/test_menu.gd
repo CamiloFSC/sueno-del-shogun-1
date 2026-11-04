@@ -26,11 +26,11 @@ func _init() -> void:
 	check("No se puede saltar el duelo 2", not CampaignStore.complete(2) and CampaignStore.progress() == 0)
 	check("Ganar el duelo 1 desbloquea el 2", CampaignStore.complete(1) and CampaignStore.progress() == 1)
 	check("Repetir un duelo ganado no avanza", not CampaignStore.complete(1) and CampaignStore.progress() == 1)
-	var order := ["Sombras Ninja", "Espadas Ronin", "Kai contra Echigo", "Templo de Enryaku-Ji", "Casa y Trono", "Alianza del Oeste", "Unificadores"]
-	var ok := CampaignStore.count() == 7
-	for i in 7:
+	var order := ["Clan Takeda", "Clan Date", "Sombras Ninja", "Espadas Ronin", "Clan Oda", "Clan Toyotomi", "Clan Tokugawa", "El Creador"]
+	var ok := CampaignStore.count() == 8 and DeckStore.problem(CampaignStore.rival_deck(1, true)) == "" and CampaignStore.rival_name(1, true) == "Uesugi e Ikko Ikki"
+	for i in 8:
 		ok = ok and CampaignStore.LEVELS[i].mazo == order[i] and DeckStore.problem(CampaignStore.rival_deck(i + 1)) == ""
-	check("7 duelos en el orden pedido, con mazos válidos", ok)
+	check("8 duelos en el orden pedido, con mazos válidos", ok)
 	CampaignStore.reset()
 	# menú
 	var menu = load("res://scenes/menu.tscn").instantiate()
@@ -72,11 +72,11 @@ func _init() -> void:
 	menu._refresh_editor()
 	check("Editor: lista del mazo ordenada por número", menu.deck_ids == [5, 94])
 	menu._show(menu.campaign)
-	check("Campaña: 7 puntos y solo el 1 disponible", menu.map.get_child_count() == 7 and not menu.map.get_child(0).disabled and menu.map.get_child(1).disabled)
-	menu._open_duel_panel(3)
+	check("Campaña: 8 puntos y solo el 1 disponible", menu.map.get_child_count() == 8 and not menu.map.get_child(0).disabled and menu.map.get_child(1).disabled)
+	menu._open_duel_panel(5)
 	menu._start_campaign_duel.call_deferred()
 	await process_frame
-	check("Iniciar duelo 3 configura mazo rival y nivel", GameConfig.campaign_level == 3 and GameConfig.name_opp == "Kai contra Echigo" and GameConfig.deck_opp.size() == 50)
+	check("Iniciar duelo 5 configura mazo rival y nivel", GameConfig.campaign_level == 5 and GameConfig.name_opp == "Clan Oda" and GameConfig.deck_opp.size() == 50)
 	# partida de campaña: ganar desbloquea
 	var main = load("res://scenes/main.tscn").instantiate()
 	GameConfig.campaign_level = 1

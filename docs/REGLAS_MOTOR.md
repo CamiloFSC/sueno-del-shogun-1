@@ -245,3 +245,7 @@ assets/fondos (4 estaciones x campo/castillo; selector «Fondo» en Jugar y en e
 
 ## 34. Tutorial, créditos y fuente
 Menú: «Tutorial rápido (1 minuto)» abre una partida guiada (tutorial_overlay.gd): 7 pasos de ~8,5 s con flechas sobre el tablero real; el jugador empieza (Game.first_player) y la IA va en nivel Fácil. «Créditos» muestra la imagen del Creador. Fuente de la interfaz: Shippori Mincho Bold (OFL) en assets/fuentes/ (si se agrega un archivo con «harukaze» en el nombre, tiene prioridad).
+
+## 35. Campaña de 8 etapas y narrador
+- Orden: 1 Kenshin vs Takeda (eliges aliado; el aliado te aconseja como sabio y el otro es el rival), 2 Masamune (Clan Date), 3 Tenzo (Sombras Ninja), 4 Mitsunari (Espadas Ronin), 5 Nobunaga (Clan Oda), 6 Hideyoshi (Clan Toyotomi), 7 Ieyasu (Clan Tokugawa), 8 El Creador (mejores cartas, IA en Pesadilla, hace trampa y se burla).
+- Cada personaje comenta la partida con globos de cómic (`scripts/narrator.gd`); imágenes `assets/personajes/<nombre>_a|b|c|d.png` (a con fondo, b neutra, c/d gesto y cuarta pared).

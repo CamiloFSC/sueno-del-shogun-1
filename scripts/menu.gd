@@ -715,6 +715,8 @@ var duel_title: Label
 var duel_text: Label
 var duel_pick: OptionButton
 var duel_level := 0
+var duel_side: OptionButton
+var duel_side_lbl: Label
 var duel_options: Array = []
 
 func _build_campaign() -> void:
@@ -774,6 +776,14 @@ func _build_campaign() -> void:
 	duel_text = _lbl("", 16, Color(0.9, 0.9, 0.9))
 	duel_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(duel_text)
+	duel_side_lbl = _lbl("¿A QUIÉN QUIERES DE ALIADO?", 16, Color(1.0, 0.6, 0.5))
+	vb.add_child(duel_side_lbl)
+	duel_side = OptionButton.new()
+	duel_side.add_theme_font_size_override("font_size", 18)
+	duel_side.add_item("Uesugi Kenshin (rival: Takeda Shingen)")
+	duel_side.add_item("Takeda Shingen (rival: Uesugi Kenshin)")
+	duel_side.item_selected.connect(func(_i): _refresh_duel_text())
+	vb.add_child(duel_side)
 	vb.add_child(_lbl("TU MAZO", 16, Color(0.7, 0.85, 1.0)))
 	duel_pick = OptionButton.new()
 	duel_pick.add_theme_font_size_override("font_size", 18)
@@ -798,13 +808,14 @@ func _refresh_campaign() -> void:
 	if pr >= CampaignStore.count():
 		camp_msg.text = "¡Campaña completada! Eres el nuevo Shogun. Puedes repetir cualquier duelo."
 	else:
-		camp_msg.text = "Duelo %d de %d desbloqueado: %s. Gana para abrir el siguiente punto." % [pr + 1, CampaignStore.count(), CampaignStore.LEVELS[pr].mazo]
+		camp_msg.text = "Duelo %d de %d desbloqueado: %s. Gana para abrir el siguiente punto." % [pr + 1, CampaignStore.count(), CampaignStore.LEVELS[pr].titulo]
 
 func _open_duel_panel(level: int) -> void:
 	duel_level = level
 	var info: Dictionary = CampaignStore.LEVELS[level - 1]
-	duel_title.text = "Duelo %d: %s" % [level, info.mazo]
-	duel_text.text = "%s\n%s\n\nRival: mazo «%s». %s" % [info.lugar, info.texto, info.mazo, CampaignStore.rival_desc(level)]
+	duel_side_lbl.visible = info.has("bando")
+	duel_side.visible = info.has("bando")
+	_refresh_duel_text()
 	duel_options = DeckStore.all_options()
 	duel_pick.clear()
 	duel_pick.add_item("Mazo al azar")
@@ -817,14 +828,22 @@ func _open_duel_panel(level: int) -> void:
 	duel_pick.select(sel)
 	duel_dim.visible = true
 
+func _refresh_duel_text() -> void:
+	var info: Dictionary = CampaignStore.LEVELS[duel_level - 1]
+	var alt: bool = info.has("bando") and duel_side.selected == 1
+	duel_title.text = "Duelo %d: %s" % [duel_level, info.titulo]
+	duel_text.text = "%s\n%s\n\nRival: mazo «%s». %s" % [info.lugar, info.texto, CampaignStore.rival_name(duel_level, alt), CampaignStore.rival_desc(duel_level, alt)]
+
 func _start_campaign_duel() -> void:
 	var i := duel_pick.selected
 	GameConfig.deck_me = [] if i <= 0 else duel_options[i - 1].deck
 	GameConfig.name_me = "Mazo al azar" if i <= 0 else duel_options[i - 1].label
 	CampaignStore.remember_deck("" if i <= 0 else duel_options[i - 1].label)
-	GameConfig.deck_opp = CampaignStore.rival_deck(duel_level)
-	GameConfig.name_opp = CampaignStore.LEVELS[duel_level - 1].mazo
-	GameConfig.difficulty = duel_diff.selected
+	var alt: bool = CampaignStore.LEVELS[duel_level - 1].has("bando") and duel_side.selected == 1
+	GameConfig.camp_alt = alt
+	GameConfig.deck_opp = CampaignStore.rival_deck(duel_level, alt)
+	GameConfig.name_opp = CampaignStore.rival_name(duel_level, alt)
+	GameConfig.difficulty = 3 if CampaignStore.LEVELS[duel_level - 1].has("boss") else duel_diff.selected
 	GameConfig.season = duel_season.selected
 	GameConfig.campaign_level = duel_level
 	get_tree().change_scene_to_file("res://scenes/main.tscn")

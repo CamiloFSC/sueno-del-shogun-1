@@ -27,6 +27,8 @@ var choice_sel: Array = []
 var choice_for := 0
 var preview_tex: TextureRect
 var duel_busy := false
+var narr: Narrator = null
+var nar_prev := {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
 var zoom_btn: Button
 var zoom_id := 0
 var zoom_token := 0
@@ -100,7 +102,8 @@ func _new_game() -> void:
 	if GameConfig.tutorial:
 		g.first_player = 0
 	g.setup(deck_me, deck_opp, rng.randi(), ["Tú", "Rival IA"])
-	g.ai_level = 0 if GameConfig.tutorial else GameConfig.difficulty
+	g.ai_level = 0 if GameConfig.tutorial else (3 if GameConfig.campaign_level == CampaignStore.count() else GameConfig.difficulty)
+	_setup_narrator()
 	g.changed.connect(_refresh)
 	_refresh()
 	if GameConfig.tutorial:
@@ -1014,6 +1017,7 @@ func _info(p: int) -> String:
 		pl.name, pl.hand.size(), pl.deck.size(), pl.castle.size(), pl.discard.size()]
 
 func _refresh() -> void:
+	_narrate()
 	_hide_preview()
 	_zoom_hide_now()
 	for q in 2:                           # posición de la carta activa antes de redibujar (para animar su salida)
@@ -1191,7 +1195,7 @@ func _refresh() -> void:
 					camp_result += " ¡Campaña completada: eres el nuevo Shogun!"
 					_show_shogun()
 				elif unlocked:
-					camp_result += " Se desbloquea el punto %d: %s." % [lv + 1, CampaignStore.LEVELS[lv].mazo]
+					camp_result += " Se desbloquea el punto %d: %s." % [lv + 1, CampaignStore.LEVELS[lv].titulo]
 			end_sub.text += camp_result
 		end_sub.add_theme_color_override("font_color", Color(1, 0.95, 0.8))
 		end_overlay.visible = not end_hidden
@@ -1478,3 +1482,59 @@ func _start_tutorial() -> void:
 		{"target": bar, "dir": "down", "text": "Aquí atacas: al guerrero rival (duelo obligatorio) o al castillo (el rival puede resistir). Luego pulsas «Terminar turno»."},
 		{"target": log_box, "dir": "left", "text": "En un DUELO cada guerrero tira tantos dados como su ATAQUE. Gana el total más alto; el perdedor muere. Aquí verás el registro y los dados."},
 		{"target": pile_deck[0], "dir": "up", "text": "Tu MAZO y tu POZO de descarte. Si tu mazo se acaba, pierdes. ¡Listo! Baja un guerrero, ataca y destruye el castillo rival. Suerte, Shogun."}])
+
+
+## Personajes de la campaña que comentan la partida con globos de cómic.
+func _setup_narrator() -> void:
+	if narr != null and is_instance_valid(narr):
+		narr.queue_free()
+		narr = null
+	nar_prev = {"c0": 7, "c1": 7, "started": false, "low": false, "opp_low": false, "blood": false, "end": false}
+	var lv: int = GameConfig.campaign_level
+	if lv > 0 and lv <= CampaignStore.count():
+		var info: Dictionary = CampaignStore.LEVELS[lv - 1]
+		narr = Narrator.new()
+		add_child(narr)
+		var chars: Array = info.chars.duplicate()
+		var allies: Array = []
+		if info.has("bando"):                     # duelo 1: el aliado elegido es el primero que habla y te aconseja
+			var ally: String = "shingen" if GameConfig.camp_alt else "kenshin"
+			var foe: String = "kenshin" if GameConfig.camp_alt else "shingen"
+			chars = [ally, foe]
+			allies = [ally]
+		narr.setup(chars, allies)
+
+func _narrate() -> void:
+	if narr == null or g == null or not is_instance_valid(narr):
+		return
+	var c0: int = g.players[0].castle.size()
+	var c1: int = g.players[1].castle.size()
+	var t: int = g.turn_number
+	if g.phase == "OVER":
+		if not nar_prev.end:
+			nar_prev.end = true
+			narr.say("win" if g.winner == 0 else "lose", t, true)
+		return
+	if not nar_prev.started and t >= 1:
+		nar_prev.started = true
+		narr.say("start", t, true)
+	elif c0 < nar_prev.c0 or c1 < nar_prev.c1:
+		var ev := "player_hurt" if c0 < nar_prev.c0 else "opp_hurt"
+		if not nar_prev.blood:
+			nar_prev.blood = true
+			ev = "first_blood"
+		var spoke := narr.say(ev, t)
+		if not spoke and c0 <= 2 and not nar_prev.low:
+			spoke = narr.say("low", t)
+		if c0 <= 2:
+			nar_prev.low = true
+		if c1 <= 2 and not nar_prev.opp_low:
+			nar_prev.opp_low = narr.say("opp_low", t)
+	nar_prev.c0 = c0
+	nar_prev.c1 = c1
+	if t >= 3 and not nar_prev.get("cheat", false) and GameConfig.campaign_level == CampaignStore.count():
+		nar_prev["cheat"] = narr.say("cheat", t)
+	elif t >= 5 and not nar_prev.get("m1", false):
+		nar_prev["m1"] = narr.say("mid1", t)
+	elif t >= 11 and not nar_prev.get("m2", false):
+		nar_prev["m2"] = narr.say("mid2", t)

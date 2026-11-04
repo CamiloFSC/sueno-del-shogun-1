@@ -1,10 +1,10 @@
 class_name CampaignMap
 extends Control
-## Mapa de la campaña: 7 puntos unidos por un camino. Se desbloquean al ganar.
+## Mapa de la campaña: 8 puntos unidos por un camino. Se desbloquean al ganar.
 
 signal picked(level: int)
 
-const POS := [Vector2(0.09, 0.66), Vector2(0.22, 0.30), Vector2(0.36, 0.66), Vector2(0.50, 0.30), Vector2(0.64, 0.66), Vector2(0.78, 0.30), Vector2(0.91, 0.62)]
+const POS := [Vector2(0.07, 0.66), Vector2(0.20, 0.30), Vector2(0.33, 0.66), Vector2(0.46, 0.30), Vector2(0.59, 0.66), Vector2(0.72, 0.30), Vector2(0.84, 0.66), Vector2(0.93, 0.30)]
 const R := 40.0
 
 var progress := 0:
@@ -56,7 +56,7 @@ func _rebuild() -> void:
 		b.disabled = not (done or open)
 		b.pressed.connect(func(): picked.emit(level))
 		var cap := Label.new()
-		cap.text = "%d. %s\n%s" % [level, CampaignStore.LEVELS[i].mazo, CampaignStore.LEVELS[i].lugar if (done or open) else "Bloqueado"]
+		cap.text = "%d. %s\n%s" % [level, CampaignStore.LEVELS[i].titulo, CampaignStore.LEVELS[i].lugar if (done or open) else "Bloqueado"]
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cap.add_theme_font_size_override("font_size", 16)
 		cap.add_theme_color_override("font_color", Color.WHITE if (done or open) else Color(0.62, 0.62, 0.66))
