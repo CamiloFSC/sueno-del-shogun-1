@@ -21,6 +21,7 @@ var preview_panel: PanelContainer
 var choice_overlay: ColorRect
 var choice_title: Label
 var choice_box: HFlowContainer
+var choice_scroll: ScrollContainer
 var choice_info: Label
 var choice_btn: Button
 var choice_sel: Array = []
@@ -288,6 +289,7 @@ func _build_ui() -> void:
 	csc.custom_minimum_size = Vector2(720, 300)
 	csc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	cvb.add_child(csc)
+	choice_scroll = csc
 	choice_box = HFlowContainer.new()
 	choice_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	choice_box.add_theme_constant_override("h_separation", 8)
@@ -552,6 +554,7 @@ func _fill_choice() -> void:
 	var pd: Dictionary = g.pending
 	var valid: Array = pd.valid
 	choice_title.text = pd.prompt
+	var keep_scroll: int = choice_scroll.scroll_vertical
 	_clear(choice_box)
 	for i in pd.options.size():
 		var o: Dictionary = pd.options[i]
@@ -607,6 +610,7 @@ func _fill_choice() -> void:
 		choice_info.text = "Elige %s (llevas %d). Si no eliges ninguna, no se usa el efecto." % [" o ".join(parts), choice_sel.size()]
 	choice_btn.disabled = not (choice_sel.size() in valid)
 	choice_btn.text = "Cerrar" if pd.mode == "info" else "Confirmar"
+	choice_scroll.set_deferred("scroll_vertical", keep_scroll)   # marcar una carta no te devuelve al inicio de la lista
 
 func _toggle_choice(i: int) -> void:
 	var maxn: int = g.pending.valid.max()
@@ -892,6 +896,11 @@ func _close_zoom() -> void:
 ## Arrastrar la mano: con el botón pulsado sobre ella, mover el mouse de lado la desplaza.
 func _input(ev: InputEvent) -> void:
 	if hand_scroll == null:
+		return
+	var overlay_open: bool = (choice_overlay != null and choice_overlay.visible) or (zoom_overlay != null and zoom_overlay.visible)
+	if overlay_open:                        # con una ventana abierta (decisión, lupa) la mano no se arrastra ni bloquea clics
+		hand_press = false
+		hand_moved = 0.0
 		return
 	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
 		hand_press = ev.pressed and hand_scroll.get_global_rect().has_point(ev.position)
