@@ -55,6 +55,8 @@ var hand_scroll: ScrollContainer
 var hand_press := false          # botón izquierdo pulsado sobre la mano
 var hand_moved := 0.0            # cuánto se arrastró de lado (evita que el arrastre juegue la carta)
 var bar: HBoxContainer
+var menu_btn: Button
+var harakiri_btn: Button
 var log_box: RichTextLabel
 var sfx_bank: Sfx
 var toast_panel: PanelContainer
@@ -149,6 +151,7 @@ func _build_ui() -> void:
 	add_child(cols)
 	var root := VBoxContainer.new()
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.custom_minimum_size = Vector2(0, 0)
 	root.add_theme_constant_override("separation", 6)
 	cols.add_child(root)
 	var side := VBoxContainer.new()
@@ -170,8 +173,8 @@ func _build_ui() -> void:
 	castle_me = zr2[1]
 	pile_deck[0] = zr2[2]
 	pile_disc[0] = zr2[3]
-	bar = HBoxContainer.new()
-	bar.add_theme_constant_override("separation", 8)
+	bar = HBoxContainer.new()                       # los botones se reparten el ancho y recortan su texto: nunca empujan el registro ni el Honor
+	bar.add_theme_constant_override("separation", 6)
 	root.add_child(bar)
 	var sc := ScrollContainer.new()
 	sc.custom_minimum_size = Vector2(0, HAND_H + 22)
@@ -211,6 +214,18 @@ func _build_ui() -> void:
 		GameConfig.cameos = not GameConfig.cameos
 		cm.text = "Comentarios: sí" if GameConfig.cameos else "Comentarios: no")
 	tools.add_child(cm)
+	menu_btn = Button.new()                     # Menú y Harakiri viven aquí para no ensanchar la fila de acciones
+	menu_btn.text = "☰ Menú"
+	menu_btn.focus_mode = Control.FOCUS_NONE
+	menu_btn.pressed.connect(_to_menu)
+	tools.add_child(menu_btn)
+	harakiri_btn = Button.new()
+	harakiri_btn.text = "Harakiri"
+	harakiri_btn.focus_mode = Control.FOCUS_NONE
+	harakiri_btn.tooltip_text = "¡Rendirse con Honor!"
+	harakiri_btn.add_theme_color_override("font_color", Color(1.0, 0.55, 0.5))
+	harakiri_btn.pressed.connect(func(): harakiri_dialog.popup_centered())
+	tools.add_child(harakiri_btn)
 	var hb := Button.new()
 	hb.text = "? Ayuda"
 	hb.focus_mode = Control.FOCUS_NONE
@@ -1153,15 +1168,14 @@ func _refresh() -> void:
 				status.text = "Turno del rival…"
 			if mine:
 				var has_active: bool = me.active != 0
-				_add_btn("⚔  Atacar al guerrero", func(): g.declare_attack("guerrero"), has_active and g.players[1].active != 0, "attack")
-				_add_btn("♜  Atacar el castillo", func(): g.declare_attack("castillo"), has_active, "castle")
+				_add_btn("⚔ Atacar guerrero", func(): g.declare_attack("guerrero"), has_active and g.players[1].active != 0, "attack")
+				_add_btn("♜ Atacar castillo", func(): g.declare_attack("castillo"), has_active, "castle")
 				if g.can_swap_active(HUMAN):
 					_add_btn("⇄  Cambiar activo", func(): g.open_swap(), true, "gold")
 				var abil: Array = g.available_abilities()
 				if not abil.is_empty():
 					_add_btn("★  Habilidades (%d)" % abil.size(), func(): g.open_abilities(), true, "gold")
 				_add_btn("Terminar turno  ▶", func(): g.end_turn(), true, "end")
-				_add_btn("☰", _to_menu, true, "neutral")
 		"DEFENDER_CHOICE":
 			status.text = "El rival ataca tu castillo. ¿Resistes con tu guerrero?" if mine else "El rival decide si resiste…"
 			if mine:
@@ -1187,10 +1201,8 @@ func _refresh() -> void:
 		"DISCARD":
 			status.text = "Tienes más de 7 cartas: haz clic en una carta de tu mano para descartarla." if mine else "El rival descarta…"
 
-	# Harakiri: rendirse con Honor (siempre disponible mientras se juega)
-	if g.phase != "OVER":
-		var hk := _add_btn("Harakiri", func(): harakiri_dialog.popup_centered(), true, "bad")
-		hk.tooltip_text = "¡Rendirse con Honor!"
+	harakiri_btn.visible = g.phase != "OVER"
+	menu_btn.visible = g.phase != "OVER"
 
 	# aviso de descarte (más de 7 cartas en la mano)
 	var need_alert: bool = g.phase == "DISCARD" and mine
@@ -1299,7 +1311,10 @@ func _add_btn(text: String, cb: Callable, enabled: bool = true, kind: String = "
 	b.disabled = not enabled
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, 40)
-	b.add_theme_font_size_override("font_size", 18)
+	b.clip_text = true                                   # sin esto el texto fija un ancho mínimo y la fila se desborda
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.tooltip_text = text
+	b.add_theme_font_size_override("font_size", 16)
 	b.add_theme_color_override("font_color", Color.WHITE)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
