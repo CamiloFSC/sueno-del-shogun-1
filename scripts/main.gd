@@ -933,6 +933,7 @@ func _show_detail(id: int) -> void:
 		note += "\n\nCarta giratoria: haz clic en ella en tu turno para colocarla boca abajo (máx. 2). Se revela sola cuando ocurre su condición."
 	if Effects.ABILITY_TEXT.has(id):
 		note += "\n\n★ Habilidad activa: úsala con el botón «Habilidades» (una vez por turno)."
+	note += _dice_breakdown(id)
 	_show_preview(id, head + c.efecto + note)
 
 func _show_preview(id: int, text: String) -> void:
@@ -1714,3 +1715,33 @@ func _honor_fly(p: int, gain: int, final_value: int) -> void:
 		var pop := create_tween()
 		pop.tween_property(badge, "scale", Vector2(1.5, 1.5), 0.12)
 		pop.tween_property(badge, "scale", Vector2.ONE, 0.18))
+
+
+## Desglose de los dados de un guerrero activo: de dónde sale cada uno.
+func _dice_breakdown(id: int) -> String:
+	for p in 2:
+		var pl = g.players[p]
+		if pl.active != id or g.card(id).categoria == "Accion":
+			continue
+		var m: Dictionary = Effects.battle_mods(g, p, g.turn_player == p)
+		var plain: bool = g.battle.get("plain", false)
+		var base: int = (pl.bb_set if pl.bb_set > 0 else g.card(id).ataque)
+		var parts: Array = ["Ataque base %d" % base]
+		var perm: int = 0 if plain else int(pl.perm_atk.get(id, 0))
+		if perm != 0:
+			parts.append("ataque permanente %+d" % perm)
+		var tenzo: int = 1 if (not plain and g.card(id).clan == "Ninja" and 61 in g.heroes_in_play(p)) else 0
+		var nin: int = 1 if (not plain and g.card(id).clan == "Ninja" and pl.next_ninja > 0) else 0
+		if tenzo > 0:
+			parts.append("Watanabe Tenzo +1 (todos los Ninja, incluido él)")
+		if nin > 0:
+			parts.append("Ninjutsu +1 (próxima batalla)")
+		var own: int = m.dice - tenzo - nin
+		if own != 0:
+			parts.append("efecto de la carta/clan %+d" % own)
+		if pl.bb_dice != 0:
+			parts.append("cartas Bushi %+d" % pl.bb_dice)
+		if pl.mult != 1:
+			parts.append("multiplicador x%d" % pl.mult)
+		return "\n\nDados que tira: %d  =  %s" % [g.dice_for(p, g.turn_player == p).n, "  ·  ".join(parts)]
+	return ""
