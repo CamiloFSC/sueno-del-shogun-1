@@ -249,3 +249,6 @@ Menú: «Tutorial rápido (1 minuto)» abre una partida guiada (tutorial_overlay
 ## 35. Campaña de 8 etapas y narrador
 - Orden: 1 Kenshin vs Takeda (eliges aliado; el aliado te aconseja como sabio y el otro es el rival), 2 Masamune (Clan Date), 3 Tenzo (Sombras Ninja), 4 Mitsunari (Espadas Ronin), 5 Nobunaga (Clan Oda), 6 Hideyoshi (Clan Toyotomi), 7 Ieyasu (Clan Tokugawa), 8 El Creador (mejores cartas, IA en Pesadilla, hace trampa y se burla).
 - Cada personaje comenta la partida con globos de cómic (`scripts/narrator.gd`); imágenes `assets/personajes/<nombre>_a|b|c|d.png` (a con fondo, b neutra, c/d gesto y cuarta pared).
+
+## 36. Tope de Honor
+El Honor de un jugador **nunca pasa de 7** (`Game.HONOR_MAX`). Todo el Honor ganado (turno, cartas Bushi, habilidades, Kenyo, etc.) pasa por `Game.gain_honor`, que recorta al máximo; el Honor que sobra se pierde.

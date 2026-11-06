@@ -128,7 +128,7 @@ static func hero_entered(g: Game, p: int, id: int) -> void:
 			continue
 		t.left -= 1
 		if t.left <= 0:
-			pl.honor += 3
+			g.gain_honor(pl, 3)
 			g._log("Lealtad cumplida: %s genera 3 de Honor." % pl.name)
 		else:
 			g._log("Lealtad (%s): faltan %d héroe(s) del clan." % [t.clan, t.left])
@@ -391,7 +391,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 		71:  # Ceremonia del té: roba 1, genera 1 de Honor (x2 con Yoshiteru en juego)
 			var m := _yoshiteru(g, p)
 			g.draw(p, m)
-			pl.honor += m
+			g.gain_honor(pl, m)
 		72, 94:  # Dominio de sí mismo (x3) / Honestidad (x2): multiplica el resultado de UN solo dado tuyo
 			var mine := _die_opts(g, p).filter(func(d): return d.who == p)
 			var k_mul: int = 3 if id == 72 else 2
@@ -423,7 +423,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 		79:  # Reiki: bota 3 cartas (a elección), +2 Honor
 			var cb := func(sel):
 				_discard_selected(g, p, sel)
-				pl.honor += 2
+				g.gain_honor(pl, 2)
 			g.request_choice(p, "Reiki: elige 3 cartas de tu mano para botar (ganas +2 de Honor)", _hand_opts(g, p), [3], cb, "give")
 		82:  # El maestro estratega: pones X cartas de tu mano al final del mazo y robas X
 			var rng_counts: Array = range(0, pl.hand.size() + 1)
@@ -486,7 +486,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 					if sel2.is_empty():
 						return
 					_discard_selected(g, p, sel2)
-					pl.honor += sel2.size()
+					g.gain_honor(pl, sel2.size())
 					g._log("Matrimonio arreglado: %s genera %d de Honor (tiene %d)." % [pl.name, sel2.size(), pl.honor])
 				g.request_choice(p, "Matrimonio arreglado: ¿cuántas cartas de tu mano descartas? (generas 1 de Honor por carta; tu Honor total no puede pasar de %d, hoy tienes %d)" % [MARRIAGE_CAP, pl.honor],
 					_hand_opts(g, p), range(0, cap + 1), cb2, "give", func(): return [])
@@ -498,7 +498,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 			g.request_choice(p, "Lealtad: nombra un clan. Si los próximos 3 héroes que bajas son de ese clan, generas 3 de Honor", _clan_opts(g), [1], cb, "clan_help",
 				func(): return _ai_lealtad(g, p))
 		83:  # El Tokaido: +1 Honor por cada carta que falte en el castillo
-			pl.honor += Game.CASTLE_SIZE - pl.castle.size()
+			g.gain_honor(pl, Game.CASTLE_SIZE - pl.castle.size())
 		84:  # Espía: 1 carta por guerrero rival, 2 por daimyo
 			var n := 0
 			for c in g.heroes_in_play(1 - p):
@@ -633,7 +633,7 @@ static func on_kill(g: Game, killer: int, victim_id: int) -> void:
 			vp.discard.append(c)
 			g._log("Saizo (solo) mata y hace descartar al azar %s a %s." % [g.card(c).nombre, vp.name])
 	if kp.active == 41 and g.is_hero(victim_id):  # Toshihisa: +1 Honor
-		kp.honor += 1
+		g.gain_honor(kp, 1)
 
 # ------------------------------------------------------------------ guerreros: efectos de batalla (B)
 
@@ -914,14 +914,14 @@ static func on_hero_died(g: Game, p: int, id: int, margin: int) -> void:
 				pl.facedown.erase(96)
 				pl.discard.append(96)
 				var cost: int = g.card(id).costo_honor
-				pl.honor += cost
+				g.gain_honor(pl, cost)
 				g._log("¡Se revela Cortesía! %s recibe %d de Honor por %s." % [pl.name, cost, g.card(id).nombre])
 				g.toast("Cortesía se revela: %s recibe %d de Honor" % [pl.name, cost])
 			98:  # Muerte Honorable: derrotado por más de 2 de diferencia
 				if margin > 2:
 					pl.facedown.erase(98)
 					pl.discard.append(98)
-					pl.honor += 3
+					g.gain_honor(pl, 3)
 					g._log("¡Se revela Muerte Honorable! %s recibe 3 de Honor (perdió por %d)." % [pl.name, margin])
 					g.toast("Muerte Honorable se revela: %s recibe 3 de Honor" % pl.name)
 
@@ -1170,7 +1170,7 @@ static func use_ability(g: Game, p: int, id: int) -> void:
 		49, 50:  # Rukkaku Yoshikata / Yoshiaki: Honor por miembros del clan Ashikaga
 			_mark_used(g, p, id)
 			var n: int = 1 if id == 49 else 2
-			pl.honor += n
+			g.gain_honor(pl, n)
 			g._log("%s genera %d de Honor." % [g.card(id).nombre, n])
 		51:  # Yoshiharu: el clan nombrado cuesta +1 de Honor en el próximo turno del rival
 			_mark_used(g, p, id)
@@ -1191,7 +1191,7 @@ static func use_ability(g: Game, p: int, id: int) -> void:
 					if sel2.is_empty():
 						return
 					_discard_selected(g, p, sel2)
-					pl.honor += 3
+					g.gain_honor(pl, 3)
 					g._log("Oda Nobunaga convierte 3 cartas en 3 de Honor.")
 				g.request_choice(p, "Oda Nobunaga: ¿descartas 3 cartas para generar 3 de Honor? (elige 3, o ninguna)", _hand_opts(g, p), [0, 3], cb2, "give")
 			g.request_choice(p, "Oda Nobunaga: ¿robas 3 cartas?", [{"label": "Sí, robar 3", "value": true}, {"label": "No", "value": false}], [1], cb, "yesno")
@@ -1216,7 +1216,7 @@ static func use_ability(g: Game, p: int, id: int) -> void:
 			var n := mini(3, _count_clan(g, p, "Ronin"))
 			g._log("Mitsunari: %d Ronin en juego, %s roba %d y genera 1 de Honor." % [_count_clan(g, p, "Ronin"), pl.name, n])
 			g.draw(p, n)
-			pl.honor += 1
+			g.gain_honor(pl, 1)
 		64:  # Motochika: cambia 1 carta de la mano por una del castillo
 			var cb := func(sel):
 				if sel.is_empty():
@@ -1259,7 +1259,7 @@ static func on_turn_end(g: Game, p: int) -> void:
 			if t.id == 66:
 				kenyo_in_temple = true
 	if (pl.active == 66 and not g.attacked_this_turn) or kenyo_in_temple:   # Kenyo: no atacó o está en el templo -> +3 de Honor
-		pl.honor += 3
+		g.gain_honor(pl, 3)
 		g._log("Kenyo %s: %s suma 3 de Honor." % ["está en el Complejo" if kenyo_in_temple else "no atacó este turno", pl.name])
 	_temple_progress(g, p)
 

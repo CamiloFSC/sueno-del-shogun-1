@@ -7,6 +7,7 @@ signal changed
 
 const HAND_LIMIT := 7
 const CASTLE_SIZE := 7
+const HONOR_MAX := 7             # tope de Honor de un jugador
 const START_HAND := 7
 const MAX_PASSIVE := 3
 
@@ -231,6 +232,10 @@ func play_action(hand_index: int) -> bool:
 	return true
 
 ## Dado lanzado por una carta Bushi (la escena en primer plano lo muestra rodando).
+## Suma Honor sin pasar del máximo (7). Todo el Honor que se gana pasa por aquí.
+func gain_honor(pl: Dictionary, n: int) -> void:
+	pl.honor = clampi(pl.honor + n, 0, HONOR_MAX)
+
 func note_die(v: int) -> void:
 	if not bushi_ctx.is_empty():
 		bushi_ctx.dice.append(v)
@@ -569,7 +574,7 @@ func _lose(p: int, reason: String) -> void:
 func _start_turn() -> void:
 	turn_number += 1
 	var pl = players[turn_player]
-	pl.honor += 1
+	gain_honor(pl, 1)
 	warrior_played = false
 	swapped_this_turn = false
 	bushi_count = [0, 0]
@@ -584,7 +589,7 @@ func _start_turn() -> void:
 		return
 	if ai_level >= 3 and turn_player == 1:     # Pesadilla: la IA hace trampa (y lo dice)
 		draw(1, 1)
-		pl.honor += 1
+		gain_honor(pl, 1)
 		_log("¡%s hace trampa! Roba 1 carta extra y gana 1 de Honor extra." % pl.name)
 		if phase == "OVER":
 			return

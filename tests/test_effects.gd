@@ -27,7 +27,7 @@ func fresh(seed_value := 5) -> Game:
 		g.players[p].discard = []
 		g.players[p].active = 0
 		g.players[p].passive = []
-		g.players[p].honor = 10
+		g.players[p].honor = 4
 	return g
 
 ## Prepara y lanza un duelo guerrero contra guerrero; deja la partida en el primer punto de decisión o al final.
@@ -181,6 +181,16 @@ func test_entering() -> void:
 	check("Tadamune no gasta Honor", g.players[0].honor == 0)
 
 	g = fresh()
+	g.players[0].honor = 6
+	g.gain_honor(g.players[0], 3)
+	check("El Honor nunca pasa de 7", g.players[0].honor == 7)
+	g.players[0].honor = 5
+	g._start_turn(0)
+	g.gain_honor(g.players[0], 5)
+	check("El Honor se mantiene en 7 al ganar más", g.players[0].honor == Game.HONOR_MAX)
+
+	g = fresh()
+	g.players[0].honor = 7
 	g.players[0].hand = [59, 1, 2, 3, 4, 5, 6]
 	g.play_warrior(0)
 	check("Kenshin pregunta qué 3 descartar", g.phase == "CHOICE" and g.pending.valid == [3])
@@ -188,6 +198,7 @@ func test_entering() -> void:
 	check("Kenshin: queda con 7 cartas tras robar", g.players[0].hand.size() == 7)
 
 	g = fresh()
+	g.players[0].honor = 7
 	g.players[0].hand = [69]
 	g.players[1].active = 55
 	g.players[1].passive = [56]
@@ -457,10 +468,11 @@ func test_abilities() -> void:
 	g.choose([idx_of(g, 3)])
 	check("Ieyasu: paga 1 y busca la carta elegida", g.players[0].hand == [3] and g.players[0].honor == h0 - 1 and g.players[0].deck.size() == 4)
 	g = fresh()
+	g.players[0].honor = 7
 	g.players[0].active = 57
 	g.use_ability(57)
 	g.choose([])
-	check("Ieyasu: elegir ninguna no cobra ni gasta", g.players[0].honor == 10 and has_ability(g, 57))
+	check("Ieyasu: elegir ninguna no cobra ni gasta", g.players[0].honor == 7 and has_ability(g, 57))
 	g.players[0].honor = 0
 	check("Ieyasu sin Honor no se puede usar", not has_ability(g, 57))
 
@@ -810,6 +822,7 @@ func test_bushi_new() -> void:
 			takeda = i
 	g.choose([takeda])
 	check("Lealtad: queda abierta con 3 héroes por bajar", g.players[0].lealtad.size() == 1 and g.players[0].lealtad[0].left == 3)
+	g.players[0].honor = 7
 	var hon: int = g.players[0].honor
 	for id in [28, 29, 30]:
 		g.players[0].hand = [id]
@@ -827,6 +840,7 @@ func test_bushi_new() -> void:
 		if g.pending.options[i].value == "Takeda":
 			takeda = i
 	g.choose([takeda])
+	g.players[0].honor = 7
 	hon = g.players[0].honor
 	g.players[0].hand = [28]
 	g.play_warrior(0)
