@@ -1510,6 +1510,9 @@ func _show_shogun() -> void:
 		return
 	var layer := Control.new()
 	layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.z_index = 100                 # por encima del cartel de VICTORIA
+	end_hidden = true
+	end_overlay.visible = false
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.92)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1538,7 +1541,10 @@ func _show_shogun() -> void:
 	b.offset_right = 90
 	b.offset_top = -64
 	b.offset_bottom = -16
-	b.pressed.connect(func(): layer.queue_free())
+	b.pressed.connect(func():
+		layer.queue_free()
+		end_hidden = false
+		end_overlay.visible = g.phase == "OVER")
 	layer.add_child(b)
 	layer.modulate.a = 0.0
 	add_child(layer)

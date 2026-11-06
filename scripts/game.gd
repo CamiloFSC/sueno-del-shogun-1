@@ -601,7 +601,7 @@ func _lose(p: int, reason: String) -> void:
 		return
 	winner = 1 - p
 	phase = "OVER"
-	_log("%s pierde: %s. ¡Gana %s!" % [players[p].name, reason, players[winner].name])
+	_log("%s pierde: %s. %s" % [players[p].name, reason, ("¡Ganas tú!" if players[winner].name == "Tú" else "¡Gana %s!" % players[winner].name)])
 
 func _start_turn() -> void:
 	turn_number += 1
