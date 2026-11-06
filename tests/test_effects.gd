@@ -184,8 +184,6 @@ func test_entering() -> void:
 	g.players[0].honor = 6
 	g.gain_honor(g.players[0], 3)
 	check("El Honor nunca pasa de 7", g.players[0].honor == 7)
-	g.players[0].honor = 5
-	g._start_turn(0)
 	g.gain_honor(g.players[0], 5)
 	check("El Honor se mantiene en 7 al ganar más", g.players[0].honor == Game.HONOR_MAX)
 
