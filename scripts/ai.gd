@@ -14,6 +14,17 @@ static func _expected(g: Game, p: int, is_att: bool) -> float:
 	var d := g.dice_for(p, is_att)
 	return d.n * 3.5 + d.points
 
+## Mayor cantidad de personajes de un mismo clan que tengo en juego.
+static func _best_clan_in_play(g: Game, p: int) -> int:
+	var cnt := {}
+	for h in g.heroes_in_play(p):
+		var c: String = g.clan_of(p, h)
+		cnt[c] = int(cnt.get(c, 0)) + 1
+	var best := 0
+	for c in cnt:
+		best = maxi(best, cnt[c])
+	return best
+
 static func _worth(g: Game, p: int, id: int) -> bool:
 	var pl = g.players[p]
 	match id:
@@ -22,13 +33,14 @@ static func _worth(g: Game, p: int, id: int) -> bool:
 		88: return pl.castle.size() <= 4
 		99: return pl.hand.size() <= 4
 		79: return pl.hand.size() >= 7
-		95: return pl.hand.size() <= 2
+		95: return pl.hand.size() <= 3
+		74: return _best_clan_in_play(g, p) >= 2                 # El destino del clan: roba 1 por personaje del clan nombrado
 		82: return Effects._ai_strategist(g, p).size() >= 2      # solo si hay cartas flojas que cambiar
 		85: return pl.honor < 2 and pl.hand.size() >= 6          # tempo: bajar gratis cuando aún no puedes pagarlo
 		86: return pl.honor < 3 and pl.hand.size() >= 7
 		97: return _lealtad_clan_count(g, p) >= 3                # solo con 3 héroes de un mismo clan en la mano
 		75: return pl.hand.size() <= 3
-		96, 98: return true                                      # trampas: colocarlas boca abajo
+		96, 98, 72, 73, 81: return true                                      # trampas: colocarlas boca abajo
 		77: return true                                          # Liderazgo: destruir una trampa rival
 		80:                                                      # Dilema: solo para habilitar Liderazgo
 			if not (77 in pl.hand) or g.players[1 - p].facedown.is_empty() or Effects._has_pair(g, p):
@@ -166,6 +178,21 @@ static func _window(g: Game) -> void:
 			if ronin >= 2:                       # Musha Shugyo: solo vale la pena descartando 2+ Ronin
 				g.play_action(i)
 				return
+	for j in pl.facedown.size():
+		var fid: int = pl.facedown[j]
+		if not (fid in Effects.FD_PLAY) or not Effects.can_play_fd(g, p, fid):
+			continue
+		var go := false
+		if fid == 81:
+			var plain_me: float = g.card(pl.active).ataque * 3.5
+			var plain_op: float = g.card(g.players[1 - p].active).ataque * 3.5
+			var cur: float = _expected(g, p, g.battle.att == p) - _expected(g, 1 - p, g.battle.att != p)
+			go = plain_me - plain_op > cur + 1.0
+		elif g.battle.get("rolled", false):
+			go = _post_roll_worth(g, p, fid)
+		if go:
+			g.play_facedown(j)
+			return
 	g.pass_priority()
 
 ## Cartas de dados: se juegan si con ellas se puede ganar (o empatar a favor) un duelo que va perdido.

@@ -27,7 +27,9 @@ archivos. El juego las busca también ahí y en `user://cartas/` y `user://fuent
 (en Windows: `%APPDATA%\Godot\app_userdata\Sueño del Shogun 1\`). El `.jfif` no lo importa Godot; se lee como bytes.
 
 ## Notas
-- Sin icono propio el .exe usa el icono por defecto de Godot; para cambiarlo pon un `.ico` en
-  «Application > Icon» del preset (en Windows Godot necesita `rcedit` configurado en Ajustes del editor).
+- El preset ya trae icono (`build/icono.ico`), versión 0.1, empresa y copyright. Para que Godot los incruste
+  necesita `rcedit-x64.exe` (github.com/electron/rcedit): Editor > Ajustes del editor > Exportar > Windows > Rcedit.
+  Sin rcedit exporta igual, pero sin icono. No ejecutes rcedit a mano después: rompería el .pck embebido.
+- Licencias: Godot (MIT) y la fuente Shippori Mincho (OFL) se citan en Créditos. Entrega junto al .exe un LEEME con ambas.
 - Windows SmartScreen puede avisar porque el ejecutable no está firmado.
 - Ventana: 1280x720, redimensionable, estiramiento `canvas_items`.

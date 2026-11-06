@@ -96,7 +96,7 @@ func is_hero(id: int) -> bool:
 	return card(id).categoria != "Accion"
 
 func is_giratorio(id: int) -> bool:
-	return card(id).get("giratorio", "") == "si"
+	return card(id).get("giratorio", "") == "si" or id in Effects.FD_PLAY
 
 ## Clan efectivo de una carta de p (Dilema del cucu cambia el clan de sus héroes; Ninja y Ronin no).
 func clan_of(p: int, id: int) -> String:
@@ -167,12 +167,21 @@ func dice_for(p: int, is_attacker: bool) -> Dictionary:
 		return {"n": 0, "points": 0}
 	var m: Dictionary = Effects.battle_mods(self, p, is_attacker)
 	var plain: bool = battle.get("plain", false)
+	var n: int = _raw_dice(p, m, plain)
+	var q: int = 1 - p
+	if players[q].active == 44 and not plain:   # Sessai Choro: el rival tira 1 dado menos
+		n -= 1
+	if pl.active == 44 and not plain and players[q].active != 0:
+		# Sessai Choro: tira tantos dados como el rival (ya con su dado menos)
+		var mq: Dictionary = Effects.battle_mods(self, q, not is_attacker)
+		n = clampi(_raw_dice(q, mq, plain) - 1, 1, 30)
+	return {"n": clampi(n, 1, 30), "points": m.points + pl.bb_points}
+
+func _raw_dice(p: int, m: Dictionary, plain: bool) -> int:
+	var pl = players[p]
 	var base: int = (pl.bb_set if pl.bb_set > 0 else card(pl.active).ataque) + (0 if plain else pl.perm_atk.get(pl.active, 0))
 	var n: int = max(base, m.set_min) + m.dice + pl.bb_dice
-	n *= pl.mult
-	if players[1 - p].active == 44 and not plain:   # Sessai Choro: el rival tira 1 dado menos
-		n -= 1
-	return {"n": clampi(n, 1, 30), "points": m.points + pl.bb_points}
+	return n * pl.mult
 
 func card_value(id: int) -> int:
 	var c = card(id)
@@ -225,6 +234,29 @@ func play_action(hand_index: int) -> bool:
 		pl.discard.append(id)
 		_fx("hand_discard", p, id)
 	_log("%s juega %s." % [pl.name, card(id).nombre])
+	bushi_ctx = {"p": p, "id": id, "l0": log_lines.size(), "hand0": pl.hand.size(), "dice": []}
+	_fx("bushi", p, id)
+	run_steps([func(): Effects.apply(self, p, id)], func(): _finish_action(p, id))
+	changed.emit()
+	return true
+
+## Juega una giratoria (72, 73, 81) que está boca abajo: se revela y hace su efecto.
+func play_facedown(idx: int) -> bool:
+	var p := actor()
+	var pl = players[p]
+	if phase != "MAIN" and phase != "WINDOW":
+		return false
+	if idx < 0 or idx >= pl.facedown.size():
+		return false
+	var id: int = pl.facedown[idx]
+	if not (id in Effects.FD_PLAY) or not Effects.can_play_fd(self, p, id):
+		return false
+	pl.facedown.remove_at(idx)
+	pl.discard.append(id)
+	bushi_count[p] += 1
+	_fx("hand_discard", p, id)
+	_log("¡%s revela %s!" % [pl.name, card(id).nombre])
+	toast("%s revela %s" % [pl.name, card(id).nombre])
 	bushi_ctx = {"p": p, "id": id, "l0": log_lines.size(), "hand0": pl.hand.size(), "dice": []}
 	_fx("bushi", p, id)
 	run_steps([func(): Effects.apply(self, p, id)], func(): _finish_action(p, id))
@@ -330,7 +362,7 @@ func _skip_idle_priority() -> void:
 			return
 		battle.priority = 1 - battle.priority
 
-## Tras lanzar los dados (y efectos como Hidetoshi): si alguien puede jugar una carta de dados, se abre una ventana.
+## Tras lanzar los dados (y efectos como Hideyoshi): si alguien puede jugar una carta de dados, se abre una ventana.
 func _post_roll_window() -> void:
 	if phase == "OVER":
 		return
@@ -624,7 +656,7 @@ func _roll(p: int, is_att: bool) -> Dictionary:
 	if pl.six_next > 0 and not rolls.is_empty():   # El camino: el primer dado vale 6
 		total += 6 - rolls[0]
 		rolls[0] = 6
-		_log("El camino: el primer dado de %s vale 6." % pl.name)
+		_log("Rectitud Zen: el primer dado de %s vale 6." % pl.name)
 	if pl.active == 29 and pl.pick_num in rolls:   # Katsuyori: acertó el número elegido
 		total += 7
 		_log("¡Katsuyori acierta el %d! +7 al total." % pl.pick_num)
@@ -654,7 +686,7 @@ func _battle_roll() -> void:
 	_roll_guard = 0
 	_do_roll()
 
-## Tira los dados de ambos; luego da paso a efectos que modifican la tirada (Hidetoshi) antes de decidir.
+## Tira los dados de ambos; luego da paso a efectos que modifican la tirada (Hideyoshi) antes de decidir.
 func _do_roll() -> void:
 	if phase == "OVER":
 		return

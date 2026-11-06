@@ -945,7 +945,7 @@ func _show_detail(id: int) -> void:
 		head += "Clan %s · Ataque %d · Honor %d\n" % [c.clan, c.ataque, c.costo_honor]
 	var note := ""
 	if g.is_giratorio(id):
-		note += "\n\nCarta giratoria: haz clic en ella en tu turno para colocarla boca abajo (máx. 2). Se revela sola cuando ocurre su condición."
+		note += "\n\nCarta giratoria: haz clic en ella en tu turno para colocarla boca abajo (máx. 2). Solo funciona desde boca abajo: " + ("haz clic en ella cuando llegue su momento." if g.card(id).get("giratorio", "") != "si" else "se revela sola cuando ocurre su condición.") + ""
 	if Effects.ABILITY_TEXT.has(id):
 		note += "\n\n★ Habilidad activa: úsala con el botón «Habilidades» (una vez por turno)."
 	note += _dice_breakdown(id)
@@ -1007,9 +1007,11 @@ func _zone(box: HBoxContainer, p: int) -> void:
 		var lf := Label.new()
 		lf.text = "BOCA ABAJO"
 		box.add_child(lf)
-		for id in pl.facedown:
+		for fi in pl.facedown.size():
+			var id: int = pl.facedown[fi]
 			if p == HUMAN:
-				box.add_child(_card_btn(id, true))
+				var fok: bool = g.phase in ["WINDOW", "MAIN"] and g.actor() == HUMAN and id in Effects.FD_PLAY and Effects.can_play_fd(g, HUMAN, id)
+				box.add_child(_card_btn(id, fok if fok else true, (func(): g.play_facedown(fi)) if fok else Callable()))
 			else:
 				var hb := Button.new()
 				hb.custom_minimum_size = Vector2(int(ZONE_H * 0.7), ZONE_H)

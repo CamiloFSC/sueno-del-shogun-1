@@ -9,6 +9,22 @@ const ACTIONS := [70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85
 
 ## Bushi que se juegan después de lanzar los dados (ventana posterior al lanzamiento).
 const POST_ROLL := [70, 72, 73, 76, 94]
+## Giratorias que se juegan DESDE boca abajo (solo funcionan así): se colocan en tu turno y se activan en su momento.
+const FD_PLAY := [72, 73, 81]
+static var _fd := false
+
+## can_play para una carta que ya está boca abajo.
+static func can_play_fd(g: Game, p: int, id: int) -> bool:
+	_fd = true
+	var ok := can_play(g, p, id)
+	_fd = false
+	return ok
+
+static func can_play_fd_as(g: Game, p: int, id: int) -> bool:
+	_fd = true
+	var ok := can_play_as(g, p, id)
+	_fd = false
+	return ok
 
 ## Dilema del cucu: ¿el cambio de clan dura para siempre (true) o hasta el final del turno (false)?
 const DILEMA_PERMANENT := false
@@ -178,6 +194,8 @@ static func can_play(g: Game, p: int, id: int) -> bool:
 	var main: bool = g.phase == "MAIN"
 	var rolled: bool = g.phase == "WINDOW" and g.battle.get("rolled", false)
 	var win: bool = g.phase == "WINDOW" and not rolled     # ventana ANTES de lanzar los dados
+	if id in FD_PLAY and not _fd:   # en la mano solo se pueden colocar boca abajo
+		return main and pl.facedown.size() < FACEDOWN_MAX and op.active != 33
 	match id:
 		70, 76:   # Conspiración / Intriga: hay dados lanzados que cambiar
 			return rolled
@@ -262,6 +280,9 @@ static func has_post_roll_play(g: Game, p: int) -> bool:
 	for id in g.players[p].hand:
 		if id in POST_ROLL and can_play_as(g, p, id):
 			return true
+	for id in g.players[p].facedown:
+		if id in POST_ROLL and id in FD_PLAY and can_play_fd_as(g, p, id):
+			return true
 	return false
 
 ## can_play suponiendo que ya se abrió la ventana posterior al lanzamiento (para decidir si abrirla).
@@ -342,7 +363,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 			g.draw(p, r)
 		78:  # (imagen 78) tu primer dado del próximo lanzamiento vale 6
 			pl.six_next = 1
-			g._log("El camino: el primer dado de %s en el próximo lanzamiento valdrá 6." % pl.name)
+			g._log("Rectitud Zen: el primer dado de %s en el próximo lanzamiento valdrá 6." % pl.name)
 		81:  # (imagen 81) se anulan todas las modificaciones de dados de esta batalla (y sus efectos de inicio)
 			for q in 2:
 				var o = g.players[q]
@@ -355,7 +376,7 @@ static func apply(g: Game, p: int, id: int) -> void:
 				o.kcopy = []
 				o.next_ninja = 0
 			g.battle["plain"] = true
-			g._log("Rectitud Zen: todas las modificaciones de esta batalla quedan anuladas; cada guerrero lanza los dados de su carta.")
+			g._log("El camino: todas las modificaciones de esta batalla quedan anuladas; cada guerrero lanza los dados de su carta.")
 		93:  # Coraje: tu Daimyo solo en el campo de batalla +2 dados
 			pl.bb_dice += 2
 			g._log("Coraje: %s suma +2 dados." % pl.name)
@@ -948,6 +969,9 @@ static func _temple_return(g: Game, p: int, id: int) -> void:
 		pl.passive.append(id)
 	elif id == CardDB.TOKEN_ID:
 		g.send_to_discard(p, id)
+	elif pl.hand.size() >= Game.HAND_LIMIT:                 # la mano está llena: no puede pasar de 7
+		g.send_to_discard(p, id)
+		g._log("%s no tiene lugar ni mano: %s va al pozo." % [pl.name, g.card(id).nombre])
 	else:
 		pl.hand.append(id)
 		g._log("%s no tiene lugar: %s vuelve a su mano." % [pl.name, g.card(id).nombre])
@@ -1263,7 +1287,7 @@ static func on_turn_end(g: Game, p: int) -> void:
 		g._log("Kenyo %s: %s suma 3 de Honor." % ["está en el Complejo" if kenyo_in_temple else "no atacó este turno", pl.name])
 	_temple_progress(g, p)
 
-# ------------------------------------------------------------------ Hidetoshi (56): modifica el resultado de un dado
+# ------------------------------------------------------------------ Hideyoshi (56): modifica el resultado de un dado
 
 ## Pasos tras tirar los dados y antes de decidir el ganador del duelo.
 static func post_roll_steps(g: Game) -> Array:
@@ -1320,9 +1344,9 @@ static func _hidetoshi(g: Game, s: int) -> void:
 				var newv: int = sel3[0].value
 				r.rolls[o.i] = newv
 				r.total += newv - oldv
-				g._log("Hidetoshi cambia un dado de %s: %d → %d (total %d)." % [g.players[o.who].name, oldv, newv, r.total])
-			g.request_choice(s, "Hidetoshi: ¿qué valor pones en ese dado?", vals, [1], cb3, "dievalue", func(): return [plan.val - 1])
-		g.request_choice(s, "Hidetoshi: elige el dado cuyo resultado quieres cambiar", dice, [1], cb2, "die", func(): return [plan.idx])
+				g._log("Hideyoshi cambia un dado de %s: %d → %d (total %d)." % [g.players[o.who].name, oldv, newv, r.total])
+			g.request_choice(s, "Hideyoshi: ¿qué valor pones en ese dado?", vals, [1], cb3, "dievalue", func(): return [plan.val - 1])
+		g.request_choice(s, "Hideyoshi: elige el dado cuyo resultado quieres cambiar", dice, [1], cb2, "die", func(): return [plan.idx])
 	var yn := [{"label": "Sí, modificar un dado", "value": true}, {"label": "No", "value": false}]
-	g.request_choice(s, "Hidetoshi (una vez por turno): ¿modificas el resultado de un dado?\nTus dados: %s = %d   ·   Rival: %s = %d" % [str(mine.rolls), mine.total, str(opp.rolls), opp.total],
+	g.request_choice(s, "Hideyoshi (una vez por turno): ¿modificas el resultado de un dado?\nTus dados: %s = %d   ·   Rival: %s = %d" % [str(mine.rolls), mine.total, str(opp.rolls), opp.total],
 		yn, [1], cb, "yesno", func(): return [0 if plan.use else 1])

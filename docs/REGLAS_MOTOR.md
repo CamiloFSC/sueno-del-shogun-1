@@ -252,3 +252,16 @@ Menú: «Tutorial rápido (1 minuto)» abre una partida guiada (tutorial_overlay
 
 ## 36. Tope de Honor
 El Honor de un jugador **nunca pasa de 7** (`Game.HONOR_MAX`). Todo el Honor ganado (turno, cartas Bushi, habilidades, Kenyo, etc.) pasa por `Game.gain_honor`, que recorta al máximo; el Honor que sobra se pierde.
+
+## 37. Vigente desde el 6-nov (reemplaza lo anterior si se contradice)
+- **Cartas**: 99 cartas + ficha 900 (el «90 cartas» de §0/§4 está obsoleto).
+- **Prioridad en ventanas de batalla**: primero el ATACANTE y luego el defensor, alternando hasta que ambos pasen (la guía ya lo dice así).
+- **Rectitud Zen (78)**: el primer dado de TU próximo lanzamiento vale 6 (no se repite en empates). **El camino (81)**: anula todas las modificaciones de dados de esa batalla y sus efectos de inicio; cada guerrero tira los dados de su carta; una vez por batalla. (§19-§20 los tenían al revés.)
+- **Kage Katsu (31)**: descarta 1 carta quien usa el Bushi (no el rival que lo juega primero). §12 queda corregido.
+- **Cartas giratorias** (96 Cortesía, 98 Muerte Honorable, 72 Dominio de sí mismo, 73 Deshonor, 81 El camino): solo funcionan boca abajo. Se colocan en la fase principal (máx. 2, cuenta como Bushi jugado; Nabe 33 lo impide). 96 y 98 se revelan solas al cumplirse su condición; 72, 73 y 81 las juega el dueño con un clic desde boca abajo en la ventana que corresponda (72 y 73 tras lanzar; 81 antes de lanzar) y van al pozo.
+- **Sessai Choro (44)**: tira tantos dados como el luchador rival (ya descontado su dado menos) y al rival se le resta 1 dado.
+- **Hideyoshi (56)**: el efecto vale solo en tu turno (decisión documentada; la imagen dice lo contrario y debe corregirse). Los mensajes dicen «Hideyoshi».
+- **Honor máximo 7** (ver §36). **Mano máxima 7**: el Complejo Enryaku-Ji ya no puede devolver un guerrero a una mano llena; va al pozo.
+- **Terror de los 7 mares (13)**: 1 dado y 1 de ataque (el CSV decía 2/2).
+- **Equilibrio de mazos**: El Creador pasa a Oda+Toyotomi (19-24 ×3, 55/56 ×2 + Bushi); Oda, Toyotomi y Date recortados; Ronin, Alianza del Oeste y Casa y Trono reforzados con Coraje y menos cartas caras.
+- **Pendiente de imagen** (la imagen manda, salvo estas): 98 → «más de 2 puntos de diferencia» + rótulo Giratorio; 56 → «solo en tu turno»; 84/99 sin «Ejército»; letras de 22/40/63.

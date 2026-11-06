@@ -70,6 +70,7 @@ func _init() -> void:
 	test_kotaro_morichika()
 	test_dice_cards()
 	test_final_cards()
+	test_giratorias_fd()
 	test_one_die_cards()
 	test_ui_events()
 	test_swap_active()
@@ -179,6 +180,16 @@ func test_entering() -> void:
 	check("Tadamune con su Daimyo es gratis", g.can_play_warrior(0, 47))
 	g.play_warrior(0)
 	check("Tadamune no gasta Honor", g.players[0].honor == 0)
+
+	g = fresh()
+	g.players[0].hand = [1, 2, 3, 4, 5, 6, 7]
+	Effects._temple_return(g, 0, 34)
+	g.players[0].active = 31
+	g.players[0].passive = [32, 33, 35, 36, 38, 39]
+	Effects._temple_return(g, 0, 34)
+	check("Templo: sin lugar y con la mano llena, el héroe va al pozo (mano <= 7)", g.players[0].hand.size() <= Game.HAND_LIMIT and 34 in g.players[0].discard)
+	check("CardInfo: los detalles se leen del CSV", not CardInfo.detail(1).begins_with("(Sin descripción"))
+	check("Terror 7 mares es 1/1 como dice la imagen", g.card(13).ataque == 1 and g.card(13).costo_honor == 1)
 
 	g = fresh()
 	g.players[0].honor = 6
@@ -578,14 +589,14 @@ func test_hidetoshi() -> void:
 	g.choose([0])
 	check("Luego pide el valor (1 a 6)", g.pending.mode == "dievalue" and g.pending.options.size() == 6)
 	g.choose([5])
-	check("Hidetoshi: su dado queda en 6", g.last_duel.rolls[0][0] == 6 and has_log(g, "Hidetoshi cambia un dado"))
+	check("Hidetoshi: su dado queda en 6", g.last_duel.rolls[0][0] == 6 and has_log(g, "Hideyoshi cambia un dado"))
 	check("Hidetoshi: el total es coherente con los dados", g.last_duel.totals[0] == 6 + g.last_duel.points[0])
 
 	g = fresh(1)
 	g.players[0].passive = [56]
 	duel(g, 25, 36)
 	g.choose([1])
-	check("Hidetoshi: decir No no cambia nada", not has_log(g, "Hidetoshi cambia") and g.phase != "CHOICE")
+	check("Hidetoshi: decir No no cambia nada", not has_log(g, "Hideyoshi cambia") and g.phase != "CHOICE")
 
 	g = fresh(1)
 	g.players[0].passive = [56]
@@ -604,7 +615,7 @@ func test_hidetoshi() -> void:
 	g.declare_attack("guerrero")
 	g.pass_priority()
 	g.pass_priority()
-	check("Hidetoshi no se ofrece en el turno del rival (es tipo A)", g.phase != "CHOICE" and not has_log(g, "Hidetoshi cambia"))
+	check("Hidetoshi no se ofrece en el turno del rival (es tipo A)", g.phase != "CHOICE" and not has_log(g, "Hideyoshi cambia"))
 
 	var used := 0
 	var bad := 0
@@ -616,7 +627,7 @@ func test_hidetoshi() -> void:
 		while g.phase == "CHOICE" and guard < 10:
 			AI.act(g)
 			guard += 1
-		if has_log(g, "Hidetoshi cambia"):
+		if has_log(g, "Hideyoshi cambia"):
 			used += 1
 			if g.last_duel.winner != 0:
 				bad += 1
@@ -1207,7 +1218,7 @@ func test_dice_cards() -> void:
 	check("Intriga fija un dado en 3", res0.rolls[0] == 3)
 	# Deshonor
 	g = fresh(5)
-	g.players[0].hand = [73]
+	g.players[0].facedown = [73]
 	g.players[0].honor = 3
 	roll_window(g)
 	if g.phase == "WINDOW":
@@ -1217,17 +1228,17 @@ func test_dice_cards() -> void:
 		for v in r1.rolls:
 			if v > 1:
 				reducible += 1
-		g.play_action(0)
+		g.play_facedown(0)
 		check("Deshonor cuesta 1 de Honor", g.players[0].honor == 2)
 		check("Deshonor baja 1 punto por cada dado rival (mínimo 1 por dado)", r1.total == tot - reducible)
 	else:
 		check("Deshonor: ventana abierta (el rival sacó todos 1)", true)
 		check("(sin dados reducibles)", true)
 	g = fresh(5)
-	g.players[0].hand = [73]
+	g.players[0].facedown = [73]
 	g.players[0].honor = 0
 	roll_window(g)
-	check("Deshonor sin Honor no se puede jugar (no abre ventana)", g.phase != "WINDOW" or not Effects.can_play(g, 0, 73))
+	check("Deshonor sin Honor no se puede jugar (no abre ventana)", g.phase != "WINDOW" or not Effects.can_play_fd(g, 0, 73))
 	# sin cartas: no hay ventana
 	g = fresh(6)
 	roll_window(g)
@@ -1259,7 +1270,7 @@ func test_dice_cards() -> void:
 	g.play_action(0)
 	g.pass_priority()
 	g.pass_priority()
-	check("El camino: el primer dado vale 6", has_log(g, "El camino: el primer dado de A vale 6") and g.last_duel.rolls[0][0] == 6)
+	check("Rectitud Zen: el primer dado vale 6", has_log(g, "Rectitud Zen: el primer dado de A vale 6") and g.last_duel.rolls[0][0] == 6)
 	g = fresh(8)
 	g.players[0].hand = [78]
 	check("El camino no se juega en tu fase principal", not Effects.can_play(g, 0, 78))
@@ -1283,15 +1294,15 @@ func test_one_die_cards() -> void:
 	check("Honestidad duplica solo ese dado", r0.rolls[0] == v0 * 2 and r0.total == t0 + v0)
 	# Dominio de sí mismo (72): triplica UN dado si tu castillo tiene 2+ cartas más
 	g = fresh(3)
-	g.players[0].hand = [72]
+	g.players[0].facedown = [72]
 	g.players[1].castle.pop_back()
 	g.players[1].castle.pop_back()
 	roll_window(g)
 	r0 = g.battle.res[0]
 	v0 = r0.rolls[0]
 	t0 = r0.total
-	check("Dominio de sí mismo se juega con 2+ cartas más en el castillo", Effects.can_play(g, 0, 72))
-	g.play_action(0)
+	check("Dominio de sí mismo se juega con 2+ cartas más en el castillo", Effects.can_play_fd(g, 0, 72))
+	g.play_facedown(0)
 	g.choose([0])
 	check("Dominio de sí mismo triplica solo ese dado", r0.rolls[0] == v0 * 3 and r0.total == t0 + 2 * v0)
 	# Watanabe Tenzo (61): Ninja +1 dado y roba 1 carta extra una vez por turno
@@ -1315,21 +1326,22 @@ func test_final_cards() -> void:
 	g.players[0].active = 17      # Musashi: 1 dado por cada 2 de Honor
 	g.players[0].honor = 10
 	g.players[1].active = 25
-	g.players[0].hand = [81, 72]
+	g.players[0].facedown = [81, 72]
 	var boosted: int = g.dice_for(0, true).n
 	g.declare_attack("guerrero")
-	g.play_action(1)               # Dominio de sí mismo (x3)
+	g.play_facedown(1)             # Dominio de sí mismo (x3)
 	check("Con Dominio y Honor 10 el atacante lanza muchos dados", g.dice_for(0, true).n > g.card(17).ataque)
-	g.play_action(0)
+	g.play_facedown(0)
 	check("Rectitud Zen: cada guerrero lanza los dados de su carta", g.dice_for(0, true).n == g.card(17).ataque and g.dice_for(1, false).n == g.card(25).ataque)
 	check("Rectitud Zen se marca en la batalla", g.battle.get("plain", false))
-	check("No se puede jugar dos veces en la misma batalla", not Effects.can_play(g, 0, 81))
+	check("No se puede jugar dos veces en la misma batalla", not Effects.can_play_fd(g, 0, 81))
 	g = fresh(9)
 	g.players[0].active = 6       # Kosaka: descarta 2 al empezar la batalla
-	g.players[0].hand = [81, 28, 29]
+	g.players[0].hand = [28, 29]
+	g.players[0].facedown = [81]
 	g.players[1].active = 25
 	g.declare_attack("guerrero")
-	g.play_action(0)
+	g.play_facedown(0)
 	g.pass_priority()
 	g.pass_priority()
 	check("Rectitud Zen anula los efectos de inicio de batalla (Kosaka no pregunta)", g.phase != "CHOICE" or "Kosaka" not in g.pending.prompt)
@@ -1488,3 +1500,25 @@ func test_multi_warriors() -> void:
 	g.pass_priority()
 	g.pass_priority()
 	check("Kotaro sin Ninja avisa en el registro", has_log(g, "Kotaro no tiene ningún Ninja"))
+
+
+func test_giratorias_fd() -> void:
+	var g := fresh(21)
+	g.players[0].hand = [72, 73, 81]
+	check("72/73/81 en la mano solo se colocan boca abajo (turno propio)", Effects.can_play(g, 0, 72) and Effects.can_play(g, 0, 81))
+	g.play_action(0)
+	check("Dominio se coloca boca abajo", g.players[0].facedown == [72] and g.players[0].hand.size() == 2)
+	check("Boca abajo no se puede jugar fuera de duelo", not Effects.can_play_fd(g, 0, 72))
+	g.players[0].facedown = []
+	g.players[0].hand = [81]
+	g.players[0].active = 25
+	g.players[1].active = 25
+	g.declare_attack("guerrero")
+	check("En la mano, Rectitud Zen no se juega en la ventana", not Effects.can_play(g, 0, 81))
+	# Sessai Choro: tira tantos dados como el rival (el rival, uno menos)
+	g = fresh(22)
+	g.players[0].active = 44
+	g.players[1].active = 36
+	var rival: int = g.card(36).ataque
+	check("Sessai Choro tira tantos dados como el rival", g.dice_for(0, true).n == maxi(1, rival - 1))
+	check("Sessai Choro quita 1 dado al rival", g.dice_for(1, false).n == maxi(1, rival - 1))
