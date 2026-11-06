@@ -641,6 +641,7 @@ func _finish_turn() -> void:
 	Effects.on_turn_end(self, turn_player)
 	for pl in players:
 		pl.mult = 1
+		pl.next_ninja = 0     # Ninjutsu: «por este turno»
 	turn_player = 1 - turn_player
 	_start_turn()
 

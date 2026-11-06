@@ -265,3 +265,4 @@ El Honor de un jugador **nunca pasa de 7** (`Game.HONOR_MAX`). Todo el Honor gan
 - **Terror de los 7 mares (13)**: 1 dado y 1 de ataque (el CSV decía 2/2).
 - **Equilibrio de mazos**: El Creador pasa a Oda+Toyotomi (19-24 ×3, 55/56 ×2 + Bushi); Oda, Toyotomi y Date recortados; Ronin, Alianza del Oeste y Casa y Trono reforzados con Coraje y menos cartas caras.
 - **Pendiente de imagen** (la imagen manda, salvo estas): 98 → «más de 2 puntos de diferencia» + rótulo Giratorio; 56 → «solo en tu turno»; 84/99 sin «Ejército»; letras de 22/40/63.
+- **Correcciones menores (6-nov)**: Kosaka (6) descarta 2 de forma OPCIONAL (0 o 2); Kotaro (9) copiando a Saizo (1) sí hace descartar al azar; Tachibana (14) suma +3 dados vs Ninja solo al ATACAR; Musha Shugyo (87) llega como máximo a 7 dados EN TOTAL; Complejo Enryaku-Ji (90): un guerrero solo gana +1 de ataque una vez; Ninjutsu (91) vence al terminar el turno.

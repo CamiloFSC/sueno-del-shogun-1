@@ -473,6 +473,8 @@ static func apply(g: Game, p: int, id: int) -> void:
 						ronin += 1
 				_discard_selected(g, p, sel)
 				var bonus := mini(ronin, 7)
+				var have: int = g.dice_for(p, g.battle.get("att", p) == p).n   # imagen: máximo 7 dados EN TOTAL
+				bonus = mini(bonus, maxi(0, 7 - have))
 				if bonus > 0:
 					pl.bb_dice += bonus
 					g._log("Musha Shugyo: %d Ronin descartado(s), %s suma +%d de ataque." % [ronin, pl.name, bonus])
@@ -592,8 +594,8 @@ static func _mods_for(g: Game, p: int, id: int, is_att: bool, m: Dictionary) -> 
 				if h != id and g.card(h).costo_honor == 1 and g.card(h).clan == "Ronin":
 					n13 += 1
 			m.dice += mini(n13, 4)
-		14:  # Tachibana: +3 vs Ninja
-			if oc.get("clan", "") == "Ninja":
+		14:  # Tachibana: si ataca, +3 dados vs Ninja
+			if is_att and oc.get("clan", "") == "Ninja":
 				m.dice += 3
 		16:  # Sasaki Kojiro: atacando, 1 dado por carta que falte en tu castillo
 			if is_att:
@@ -647,7 +649,7 @@ static func _mods_for(g: Game, p: int, id: int, is_att: bool, m: Dictionary) -> 
 ## Se llama cuando el guerrero activo de `killer` derrota a `victim_id`.
 static func on_kill(g: Game, killer: int, victim_id: int) -> void:
 	var kp = g.players[killer]
-	if kp.active == 1 and kp.passive.is_empty():   # Saizo: solo y mata a un oponente -> descarte AL AZAR
+	if (kp.active == 1 or (kp.active == 9 and 1 in kp.kcopy)) and kp.passive.is_empty():   # Saizo: solo y mata a un oponente -> descarte AL AZAR
 		var vp = g.players[1 - killer]
 		if not vp.hand.is_empty():
 			var c: int = vp.hand.pop_at(g.rng.randi() % vp.hand.size())
@@ -679,6 +681,8 @@ static func _start_for(g: Game, p: int, is_att: bool, id: int, steps: Array) -> 
 				if pl.hand.size() < 2:
 					return
 				var cb := func(sel):
+					if sel.is_empty():
+						return
 					var all_ninja := true
 					for o in sel:
 						if g.card(o.card).clan != "Ninja":
@@ -687,7 +691,7 @@ static func _start_for(g: Game, p: int, is_att: bool, id: int, steps: Array) -> 
 					if all_ninja:
 						pl.bb_points += 5
 						g._log("Kosaka: ¡ambas cartas eran Ninja! +5 puntos.")
-				g.request_choice(p, "Kosaka: descarta 2 cartas de tu mano (si ambas son Ninja, +5 puntos a tu tirada)", _hand_opts(g, p), [2], cb, "give")
+				g.request_choice(p, "Kosaka: puedes descartar 2 cartas de tu mano (si ambas son Ninja, +5 puntos a tu tirada). Elige 2, o ninguna para no hacerlo", _hand_opts(g, p), [0, 2], cb, "give")
 			steps.append(st)
 		15:  # Sanada Yukimura: al atacar, puede descartar 2 cartas para sumar 4 dados
 			if (not is_att) and op.active != 0:   # Sanada: al RECIBIR un ataque
@@ -1019,9 +1023,11 @@ static func _temple_progress(g: Game, p: int) -> void:
 		var clan: String = g.card(id).clan
 		if sensei and (clan == "Ikko Ikki" or clan == "Uesugi"):
 			bonus = 2
-		if id != CardDB.TOKEN_ID:
-			pl.perm_atk[id] = pl.perm_atk.get(id, 0) + bonus
-		g._log("%s sale del Complejo con +%d de ataque permanente." % [g.card(id).nombre, bonus])
+		if id != CardDB.TOKEN_ID and pl.perm_atk.get(id, 0) == 0:
+			pl.perm_atk[id] = bonus
+			g._log("%s sale del Complejo con +%d de ataque permanente." % [g.card(id).nombre, bonus])
+		else:
+			g._log("%s sale del Complejo, pero no puede volver a aumentar su ataque." % g.card(id).nombre)
 		_temple_return(g, p, id)
 
 # ------------------------------------------------------------------ habilidades activas (A) y efectos continuos (D)

@@ -71,6 +71,7 @@ func _init() -> void:
 	test_dice_cards()
 	test_final_cards()
 	test_giratorias_fd()
+	test_motor_menores()
 	test_one_die_cards()
 	test_ui_events()
 	test_swap_active()
@@ -239,7 +240,7 @@ func test_battle_prompts() -> void:
 	g = fresh()
 	g.players[0].hand = [1, 2, 71]
 	duel(g, 6, 25)   # Kosaka
-	check("Kosaka pregunta qué 2 descartar", g.phase == "CHOICE" and g.pending.valid == [2])
+	check("Kosaka pregunta qué 2 descartar", g.phase == "CHOICE" and g.pending.valid == [0, 2])
 	g.choose([idx_of(g, 1), idx_of(g, 2)])
 	check("Kosaka: dos Ninja = +5 puntos", g.last_duel.points[0] == 5)
 	g = fresh()
@@ -766,7 +767,7 @@ func test_bushi_new() -> void:
 	g.declare_attack("guerrero")
 	g.play_action(0)
 	g.choose([0, 1, 2, 3, 4, 5, 6, 7])   # 8 Ronin
-	check("Musha Shugyo: el bono tiene tope 7", g.players[0].bb_dice == 7)
+	check("Musha Shugyo: tope de 7 dados en total", g.dice_for(0, true).n == 7)
 	g = fresh()
 	g.players[0].hand = [87, 10, 1]
 	g.players[0].active = 4   # Ninja
@@ -1522,3 +1523,16 @@ func test_giratorias_fd() -> void:
 	var rival: int = g.card(36).ataque
 	check("Sessai Choro tira tantos dados como el rival", g.dice_for(0, true).n == maxi(1, rival - 1))
 	check("Sessai Choro quita 1 dado al rival", g.dice_for(1, false).n == maxi(1, rival - 1))
+
+func test_motor_menores() -> void:
+	var g := fresh(31)
+	g.players[0].active = 25
+	g.players[1].active = 14   # Tachibana defendiendo: sin bono contra Ninja
+	g.players[0].active = 1
+	var d0: int = g.card(14).ataque
+	check("Tachibana no suma +3 dados al defender", g.dice_for(1, false).n == d0)
+	check("Tachibana suma +3 dados al atacar a un Ninja", g.dice_for(1, true).n == d0 + 3)
+	g = fresh(32)
+	g.players[0].next_ninja = 1
+	g._finish_turn()
+	check("Ninjutsu vence al terminar el turno", g.players[0].next_ninja == 0)
