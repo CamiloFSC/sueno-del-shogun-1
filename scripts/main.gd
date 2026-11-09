@@ -938,8 +938,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 		_kb_hide()
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
-		if _kb_key(ev):
-			get_viewport().set_input_as_handled()
+		var vp := get_viewport()          # guardado antes: Enter sobre «Menú» cambia de escena y este nodo deja de estar en el árbol
+		if _kb_key(ev) and vp != null:
+			vp.set_input_as_handled()
 
 # ---------------------------------------------------------------- teclado
 
@@ -1406,8 +1407,6 @@ func _refresh() -> void:
 		end_btns["camp"].visible = camp
 		end_btns["new"].text = ("▶  Reintentar duelo" if camp else "▶  Nueva partida")
 		end_btns["new"].visible = not (camp and won)
-		end_btns["pack"].visible = camp and won and CollectionStore.pending() > 0
-		end_btns["pack"].text = "🎴  Abrir sobre (%d)" % CollectionStore.pending()
 		if camp and won:
 			if camp_result == "":
 				var lv: int = GameConfig.campaign_level
@@ -1422,6 +1421,8 @@ func _refresh() -> void:
 				elif unlocked:
 					camp_result += " Se desbloquea el punto %d: %s." % [lv + 1, CampaignStore.LEVELS[lv].titulo]
 			end_sub.text += camp_result
+		end_btns["pack"].visible = camp and won and CollectionStore.pending() > 0     # después de entregar el sobre
+		end_btns["pack"].text = "🎴  Abrir sobre (%d)" % CollectionStore.pending()
 		end_sub.add_theme_color_override("font_color", Color(1, 0.95, 0.8))
 		end_overlay.visible = not end_hidden
 	else:

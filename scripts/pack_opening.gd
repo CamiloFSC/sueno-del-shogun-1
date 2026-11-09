@@ -161,3 +161,13 @@ func _flip(i: int) -> void:
 func _close() -> void:
 	closed.emit()
 	queue_free()
+
+## Teclado: Enter / Espacio / flecha derecha revelan la siguiente carta; con todas reveladas, cierran el sobre.
+func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_RIGHT, KEY_D]:
+		get_viewport().set_input_as_handled()
+		for i in _slots.size():
+			if not _slots[i].flipped:
+				_flip(i)
+				return
+		_close()
