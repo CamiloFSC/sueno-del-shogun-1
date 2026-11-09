@@ -178,6 +178,13 @@ func play(ev: Dictionary, info: Dictionary, sfx: Sfx) -> void:
 	_impact(0.9)
 	_burst(l.position + l.size * 0.5)
 	var alt: Texture2D = ExtraArt.alt_pose(ev.ids[winner])   # pose alternativa del Daimyo ganador
+	var wa := AnimStore.make(ev.ids[winner], "ataque", 8.0)
+	var la := AnimStore.make(ev.ids[loser], "dano", 6.0)
+	if wa != null:
+		_overlay_anim(w, wa)
+		alt = null
+	if la != null:
+		_overlay_anim(l, la)
 	if alt != null:
 		var ar := TextureRect.new()
 		ar.texture = alt
@@ -203,6 +210,16 @@ func play(ev: Dictionary, info: Dictionary, sfx: Sfx) -> void:
 	win_lbl.size = Vector2(w.size.x + 120, 40)
 	win_lbl.position = Vector2(-60, -72)
 	w.add_child(win_lbl)
+	if wa != null:
+		var wv := AnimStore.make(ev.ids[winner], "victoria", 6.0)
+		if wv != null:
+			wa.queue_free()
+			_overlay_anim(w, wv)
+	if la != null:
+		var ld := AnimStore.make(ev.ids[loser], "derrota", 5.0, false)
+		if ld != null:
+			la.queue_free()
+			_overlay_anim(l, ld)
 	w.pivot_offset = w.size * 0.5
 	l.pivot_offset = l.size * 0.5
 	t = _tw()
@@ -230,6 +247,15 @@ func play(ev: Dictionary, info: Dictionary, sfx: Sfx) -> void:
 	await t.finished
 	finished.emit()
 	queue_free()
+
+## Pone una animación de sprites sobre la carta (la ilustración queda tenue detrás).
+func _overlay_anim(card: Control, a: SpriteAnim) -> void:
+	for ch in card.get_children():
+		if ch is TextureRect and not (ch is SpriteAnim):
+			ch.modulate.a = 0.25
+	a.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	a.custom_minimum_size = Vector2.ZERO
+	card.add_child(a)
 
 func _label(text: String, fs: int, col: Color) -> Label:
 	var l := Label.new()
