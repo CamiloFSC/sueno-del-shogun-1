@@ -266,3 +266,10 @@ El Honor de un jugador **nunca pasa de 7** (`Game.HONOR_MAX`). Todo el Honor gan
 - **Equilibrio de mazos**: El Creador pasa a Oda+Toyotomi (19-24 ×3, 55/56 ×2 + Bushi); Oda, Toyotomi y Date recortados; Ronin, Alianza del Oeste y Casa y Trono reforzados con Coraje y menos cartas caras.
 - **Pendiente de imagen** (la imagen manda, salvo estas): 98 → «más de 2 puntos de diferencia» + rótulo Giratorio; 56 → «solo en tu turno»; 84/99 sin «Ejército»; letras de 22/40/63.
 - **Correcciones menores (6-nov)**: Kosaka (6) descarta 2 de forma OPCIONAL (0 o 2); Kotaro (9) copiando a Saizo (1) sí hace descartar al azar; Tachibana (14) suma +3 dados vs Ninja solo al ATACAR; Musha Shugyo (87) llega como máximo a 7 dados EN TOTAL; Complejo Enryaku-Ji (90): un guerrero solo gana +1 de ataque una vez; Ninjutsu (91) vence al terminar el turno.
+
+## 38. Colección, sobres y efectos de carta (8-nov)
+- **Pantalla de presentación** (`scenes/splash.tscn`, escena principal): logo `assets/logo.png` (temporal, reemplazable) y «Presiona cualquier botón para avanzar». Solo sale al abrir el juego.
+- **Colección** (`user://coleccion.json`): se empieza con 17 cartas distintas, las del **Mazo inicial** (50 cartas, `CollectionStore.STARTER`). El editor de mazos, «Completar al azar», «Cargar como base», Jugar contra la IA y la campaña solo ofrecen cartas y mazos que el jugador tiene completos. La IA rival usa siempre mazos completos. En Jugar contra la IA ya no existe «Mazo al azar» para ti (sí para el rival).
+- **Sobres**: la PRIMERA vez que ganas cada duelo de campaña recibes 1 sobre (se abre desde el cartel de victoria o desde «Abrir sobre» del menú). Contiene 2 guerreros, 2 acciones Bushi y 1 Daimyo; se prefieren cartas que aún no tienes y, si no quedan, salen repetidas. Las repetidas no dan nada.
+- **Galería**: las cartas no obtenidas aparecen en blanco y negro, borrosas, con «?»; la búsqueda no las encuentra y no se pueden abrir. Botones de prueba 🔓 Todas / 🔒 Reiniciar.
+- **Holográfico** (`assets/shaders/holo.gdshader`, `CardFx.HOLO` = Daimyos 55-60): arcoíris, destello y chispas en galería, visor y apertura de sobres (en el visor sigue al ratón).

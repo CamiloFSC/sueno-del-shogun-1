@@ -120,6 +120,7 @@ func _show_card() -> void:
 	var c: Dictionary = CardDB.cards[id]
 	var tex := CardArt.get_texture(id)
 	_pic.texture = tex
+	CardFx.apply(_pic, id, true)
 	_fallback.visible = tex == null
 	_fallback.text = "%s\n\n(sin imagen)" % c.nombre if tex == null else ""
 	_title.text = c.nombre
@@ -143,3 +144,8 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 		KEY_RIGHT: step(1)
 		_: return
 	get_viewport().set_input_as_handled()
+
+func _process(_d: float) -> void:
+	if visible and _pic != null and _pic.material is ShaderMaterial and _pic.size.x > 0.0:
+		var m: Vector2 = _pic.get_local_mouse_position() / _pic.size
+		(_pic.material as ShaderMaterial).set_shader_parameter("tilt", m.clamp(Vector2.ZERO, Vector2.ONE))

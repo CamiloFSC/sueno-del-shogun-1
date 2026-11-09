@@ -33,6 +33,9 @@ var pick_season: OptionButton
 var duel_season: OptionButton
 var editor: Control
 var options: Array = []
+var options_me: Array = []
+var pack_btn: Button
+var gal_owned_lbl: Label
 var pick_me: OptionButton
 var pick_opp: OptionButton
 var desc_me: Label
@@ -89,6 +92,7 @@ func _ready() -> void:
 func _show(c: Control) -> void:
 	for s in [home, play_screen, editor, gallery, campaign, guide, credits]:
 		s.visible = (s == c)
+	_refresh_pack_btn()
 	if c == play_screen:
 		_refresh_play()
 	elif c == editor:
@@ -166,6 +170,8 @@ func _build_home() -> void:
 	vb.add_child(_btn("Modo Campaña Histórica", "gold", func(): _show(campaign), 24))
 	vb.add_child(_btn("▶  Jugar contra la IA", "good", func(): _show(play_screen), 24))
 	vb.add_child(_btn("Constructor de mazos", "go", func(): _show(editor), 24))
+	pack_btn = _btn("🎴  Abrir sobre", "gold", _open_pack, 24)
+	vb.add_child(pack_btn)
 	vb.add_child(_btn("Galería de cartas", "end", func(): _show(gallery), 24))
 	vb.add_child(_btn("Aprender a Jugar", "go", func(): guide_page = 0; _refresh_guide(); _show(guide), 24))
 	vb.add_child(_btn("Tutorial rápido (1 minuto)", "good", _start_tutorial_game, 20))
@@ -219,11 +225,14 @@ func _refresh_play() -> void:
 	var keep_me := pick_me.selected
 	var keep_opp := pick_opp.selected
 	options = DeckStore.all_options()
-	for pk in [pick_me, pick_opp]:
-		pk.clear()
-		pk.add_item("Mazo al azar")
-		for o in options:
-			pk.add_item(o.label)
+	options_me = DeckStore.options_owned()
+	pick_me.clear()
+	for o in options_me:
+		pick_me.add_item(o.label)
+	pick_opp.clear()
+	pick_opp.add_item("Mazo al azar")
+	for o in options:
+		pick_opp.add_item(o.label)
 	pick_me.select(clampi(keep_me, 0, pick_me.item_count - 1) if keep_me >= 0 else 0)
 	pick_opp.select(clampi(keep_opp, 0, pick_opp.item_count - 1) if keep_opp >= 0 else 0)
 	play_msg.text = ""
@@ -235,15 +244,15 @@ func _desc_of(i: int) -> String:
 	return options[i - 1].desc
 
 func _update_desc() -> void:
-	desc_me.text = _desc_of(pick_me.selected)
+	desc_me.text = options_me[pick_me.selected].desc if pick_me.selected >= 0 and pick_me.selected < options_me.size() else ""
 	desc_opp.text = _desc_of(pick_opp.selected)
 
 func _start_game() -> void:
 	var i := pick_me.selected
 	var j := pick_opp.selected
-	GameConfig.deck_me = [] if i <= 0 else options[i - 1].deck
+	GameConfig.deck_me = options_me[i].deck
 	GameConfig.deck_opp = [] if j <= 0 else options[j - 1].deck
-	GameConfig.name_me = "Mazo al azar" if i <= 0 else options[i - 1].label
+	GameConfig.name_me = options_me[i].label
 	GameConfig.name_opp = "Mazo al azar" if j <= 0 else options[j - 1].label
 	GameConfig.difficulty = pick_diff.selected
 	GameConfig.season = pick_season.selected
@@ -432,8 +441,9 @@ func _catalog_ids() -> Array:
 	var q := search.text.strip_edges().to_lower()
 	var cat: int = cat_pick.selected
 	var ids := []
+	var have := CollectionStore.owned()
 	for id in CardDB.cards:
-		if id >= CardDB.TOKEN_ID:
+		if id >= CardDB.TOKEN_ID or not have.has(id):
 			continue
 		var c: Dictionary = CardDB.cards[id]
 		if cat == 1 and c.categoria != "Guerrero": continue
@@ -536,7 +546,7 @@ func _fill_deck() -> void:
 
 func _fill_load_pick() -> void:
 	load_pick.clear()
-	load_opts = DeckStore.all_options()
+	load_opts = DeckStore.options_owned()
 	for o in load_opts:
 		load_pick.add_item(o.label)
 
@@ -570,8 +580,9 @@ func _on_delete() -> void:
 
 func _on_fill() -> void:
 	var pool := []
+	var have := CollectionStore.owned()
 	for id in CardDB.cards:
-		if id < CardDB.TOKEN_ID and _has_effect(id):
+		if id < CardDB.TOKEN_ID and have.has(id) and _has_effect(id):
 			pool.append(id)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -581,10 +592,29 @@ func _on_fill() -> void:
 		var id: int = pool[rng.randi() % pool.size()]
 		if cnt.get(id, 0) < DeckStore.MAX_COPIES:
 			cnt[id] = cnt.get(id, 0) + 1
-	_msg("Mazo completado al azar con cartas que ya funcionan.", true)
+	_msg("Mazo completado al azar con tus cartas.", true)
 	_refresh_editor()
 
 # ------------------------------------------------------------------ galería de cartas
+
+func _refresh_pack_btn() -> void:
+	if pack_btn == null:
+		return
+	var n := CollectionStore.pending()
+	pack_btn.visible = n > 0
+	pack_btn.text = "🎴  Abrir sobre (%d)" % n
+
+func _open_pack() -> void:
+	var r := CollectionStore.open_pack()
+	if r.is_empty():
+		return
+	var po := PackOpening.new()
+	po.setup(r.cartas, r.nuevas)
+	po.closed.connect(func():
+		_refresh_pack_btn()
+		if gallery.visible:
+			_fill_gallery())
+	add_child(po)
 
 func _build_gallery() -> void:
 	gallery = _screen()
@@ -616,9 +646,13 @@ func _build_gallery() -> void:
 		gal_cat.add_item(c)
 	gal_cat.item_selected.connect(func(_i): _fill_gallery())
 	top.add_child(gal_cat)
+	top.add_child(_btn("🔓 Todas", "neutral", func(): CollectionStore.unlock_all(); _fill_gallery(), 14))
+	top.add_child(_btn("🔒 Reiniciar", "neutral", func(): CollectionStore.reset(); _fill_gallery(), 14))
 	gal_info = _lbl("", 17, Color(0.8, 0.9, 1.0))
 	root.add_child(gal_info)
-	root.add_child(_lbl("Haz clic en una carta para verla en grande, con su efecto, cómo lo interpreta el juego y si funciona (✔ funciona · ✘ no funciona). En el visor pasas de una carta a otra con las flechas.", 14, Color(0.8, 0.8, 0.8)))
+	var gal_help := _lbl("Haz clic en una carta para verla en grande, con su efecto y cómo lo interpreta el juego (✔ funciona · ✘ no funciona). Las cartas en blanco y negro aún no las tienes: gana duelos de campaña para abrir sobres. Los botones 🔓/🔒 son para pruebas.", 14, Color(0.8, 0.8, 0.8))
+	gal_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(gal_help)
 	var sc := ScrollContainer.new()
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -633,8 +667,10 @@ func _gallery_ids() -> Array:
 	var q := gal_search.text.strip_edges().to_lower()
 	var cat: int = gal_cat.selected
 	var ids := []
+	var have := CollectionStore.owned()
 	for id in CardInfo.collection_ids():
 		var c: Dictionary = CardDB.cards[id]
+		if q != "" and not have.has(id): continue      # buscar no revela cartas que no tienes
 		if cat == 1 and c.categoria != "Guerrero": continue
 		if cat == 2 and c.categoria != "Daimyo": continue
 		if cat == 3 and c.categoria != "Accion": continue
@@ -649,9 +685,15 @@ func _fill_gallery() -> void:
 		return
 	_clear(gal_grid)
 	gal_ids = _gallery_ids()
-	gal_info.text = "%d cartas mostradas · %d / %d funcionan en el juego" % [gal_ids.size(), CardInfo.working_count(), CardInfo.collection_ids().size()]
+	var have := CollectionStore.owned()
+	var mine := []
+	for gid in gal_ids:
+		if have.has(gid):
+			mine.append(gid)
+	gal_info.text = "Colección: %d / %d cartas obtenidas · %d sobre(s) sin abrir · %d cartas mostradas" % [have.size(), CollectionStore.total(), CollectionStore.pending(), gal_ids.size()]
 	for i in gal_ids.size():
 		var id: int = gal_ids[i]
+		var got: bool = have.has(id)
 		var c: Dictionary = CardDB.cards[id]
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
@@ -663,6 +705,11 @@ func _fill_gallery() -> void:
 			fill = Color(0.38, 0.16, 0.16)
 		var ok := CardInfo.works(id)
 		var border := Color(1.0, 0.85, 0.3) if ok else Color(1.0, 0.35, 0.3)
+		if not got:
+			fill = Color(0.12, 0.12, 0.13)
+			border = Color(0.35, 0.35, 0.38)
+		elif CardFx.is_holo(id):
+			border = Color(0.75, 0.95, 1.0)
 		for st in ["normal", "hover", "pressed"]:
 			var sb := _box(fill.lightened(0.15) if st == "hover" else fill, Color.WHITE if st == "hover" else border)
 			sb.set_border_width_all(3)
@@ -683,26 +730,31 @@ func _fill_gallery() -> void:
 			img.offset_top = 4
 			img.offset_bottom = -4
 			img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			CardFx.apply(img, id, got)
 			b.add_child(img)
 		else:
-			b.text = "%s\n\n%s" % [c.nombre, "" if c.categoria == "Accion" else "%s\n⚔%d ♦%d" % [c.clan, c.ataque, c.costo_honor]]
+			b.text = ("%s\n\n%s" % [c.nombre, "" if c.categoria == "Accion" else "%s\n⚔%d ♦%d" % [c.clan, c.ataque, c.costo_honor]]) if got else "?"
 			b.add_theme_font_size_override("font_size", 17)
 			b.add_theme_color_override("font_color", Color.WHITE)
 			b.add_theme_color_override("font_hover_color", Color.WHITE)
 			b.add_theme_color_override("font_pressed_color", Color.WHITE)
-		var num := _lbl(str(id), 16, Color.WHITE)
+		var num := _lbl(str(id) if got else "?", 16, Color.WHITE)
 		num.add_theme_color_override("font_outline_color", Color.BLACK)
 		num.add_theme_constant_override("outline_size", 6)
 		num.position = Vector2(8, 4)
 		num.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(num)
-		var mark := _lbl("✔" if ok else "✘", 22, Color(0.45, 1.0, 0.55) if ok else Color(1.0, 0.4, 0.35))
+		var mark := _lbl(("✔" if ok else "✘") if got else "", 22, Color(0.45, 1.0, 0.55) if ok else Color(1.0, 0.4, 0.35))
 		mark.add_theme_color_override("font_outline_color", Color.BLACK)
 		mark.add_theme_constant_override("outline_size", 6)
 		mark.position = Vector2(148, 2)
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(mark)
-		b.pressed.connect(func(): viewer.open(gal_ids, i))
+		if got:
+			var mi: int = mine.find(id)
+			b.pressed.connect(func(): viewer.open(mine, mi))
+		else:
+			b.pressed.connect(func(): gal_info.text = "Aún no tienes esta carta. ¡Gana duelos de campaña para abrir sobres!")
 		gal_grid.add_child(b)
 
 # ------------------------------------------------------------------ campaña histórica
@@ -816,15 +868,14 @@ func _open_duel_panel(level: int) -> void:
 	duel_side_lbl.visible = info.has("bando")
 	duel_side.visible = info.has("bando")
 	_refresh_duel_text()
-	duel_options = DeckStore.all_options()
+	duel_options = DeckStore.options_owned()
 	duel_pick.clear()
-	duel_pick.add_item("Mazo al azar")
 	var last := CampaignStore.last_deck()
 	var sel := 0
 	for i in duel_options.size():
 		duel_pick.add_item(duel_options[i].label)
 		if duel_options[i].label == last:
-			sel = i + 1
+			sel = i
 	duel_pick.select(sel)
 	duel_dim.visible = true
 
@@ -835,10 +886,10 @@ func _refresh_duel_text() -> void:
 	duel_text.text = "%s\n%s\n\nRival: mazo «%s». %s" % [info.lugar, info.texto, CampaignStore.rival_name(duel_level, alt), CampaignStore.rival_desc(duel_level, alt)]
 
 func _start_campaign_duel() -> void:
-	var i := duel_pick.selected
-	GameConfig.deck_me = [] if i <= 0 else duel_options[i - 1].deck
-	GameConfig.name_me = "Mazo al azar" if i <= 0 else duel_options[i - 1].label
-	CampaignStore.remember_deck("" if i <= 0 else duel_options[i - 1].label)
+	var i := maxi(duel_pick.selected, 0)
+	GameConfig.deck_me = duel_options[i].deck
+	GameConfig.name_me = duel_options[i].label
+	CampaignStore.remember_deck(duel_options[i].label)
 	var alt: bool = CampaignStore.LEVELS[duel_level - 1].has("bando") and duel_side.selected == 1
 	GameConfig.camp_alt = alt
 	GameConfig.deck_opp = CampaignStore.rival_deck(duel_level, alt)

@@ -478,7 +478,7 @@ func _build_ui() -> void:
 	erow.alignment = BoxContainer.ALIGNMENT_CENTER
 	erow.add_theme_constant_override("separation", 12)
 	evb.add_child(erow)
-	for spec in [["▶  Nueva partida", "gold", "new"], ["Volver a la campaña", "good", "camp"], ["☰  Menú", "neutral", "menu"], ["Ver el tablero", "go", "peek"]]:
+	for spec in [["▶  Nueva partida", "gold", "new"], ["🎴  Abrir sobre", "gold", "pack"], ["Volver a la campaña", "good", "camp"], ["☰  Menú", "neutral", "menu"], ["Ver el tablero", "go", "peek"]]:
 		var eb := Button.new()
 		eb.text = spec[0]
 		eb.focus_mode = Control.FOCUS_NONE
@@ -494,6 +494,8 @@ func _build_ui() -> void:
 				_to_menu()
 			elif act == "menu":
 				_to_menu()
+			elif act == "pack":
+				_open_pack()
 			else:
 				end_hidden = true
 				end_overlay.visible = false)
@@ -1239,11 +1241,16 @@ func _refresh() -> void:
 		end_btns["camp"].visible = camp
 		end_btns["new"].text = ("▶  Reintentar duelo" if camp else "▶  Nueva partida")
 		end_btns["new"].visible = not (camp and won)
+		end_btns["pack"].visible = camp and won and CollectionStore.pending() > 0
+		end_btns["pack"].text = "🎴  Abrir sobre (%d)" % CollectionStore.pending()
 		if camp and won:
 			if camp_result == "":
 				var lv: int = GameConfig.campaign_level
 				var unlocked := CampaignStore.complete(lv)
 				camp_result = "\n\n¡Duelo %d de la campaña superado!" % lv
+				if unlocked:
+					CollectionStore.add_pending(1)
+					camp_result += " ¡Ganas un sobre de 5 cartas!"
 				if lv >= CampaignStore.count():
 					camp_result += " ¡Campaña completada: eres el nuevo Shogun!"
 					_show_shogun()
@@ -1501,6 +1508,19 @@ func _ai_step() -> void:
 		return
 	if g.phase != "OVER" and g.actor() != HUMAN:
 		AI.act(g)
+
+
+## Abre un sobre pendiente (premio de campaña) sobre el cartel de resultado.
+func _open_pack() -> void:
+	var r := CollectionStore.open_pack()
+	if r.is_empty():
+		return
+	var po := PackOpening.new()
+	po.setup(r.cartas, r.nuevas)
+	po.closed.connect(func():
+		end_btns["pack"].visible = CollectionStore.pending() > 0
+		end_btns["pack"].text = "🎴  Abrir sobre (%d)" % CollectionStore.pending())
+	add_child(po)
 
 
 ## Pantalla final de la campaña: el nuevo Shogun.

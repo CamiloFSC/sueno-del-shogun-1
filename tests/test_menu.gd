@@ -10,6 +10,7 @@ func check(name: String, ok: bool) -> void:
 
 func _init() -> void:
 	CardDB.load_all()
+	CollectionStore.unlock_all()   # el editor y la galería solo muestran lo que tienes
 	# información de cartas
 	check("99 cartas en la colección", CardInfo.collection_ids().size() == 99)
 	var all_detail := true

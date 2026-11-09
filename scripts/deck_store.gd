@@ -119,3 +119,20 @@ static func all_options() -> Array:
 	for i in PRESETS.size():
 		out.append({"label": PRESETS[i].nombre, "deck": preset_deck(i), "desc": PRESETS[i].desc})
 	return out
+
+## Mazos que el jugador puede usar con su colección actual: guardados, mazo inicial y temáticos completos.
+static func options_owned() -> Array:
+	var out := []
+	var saved := load_saved()
+	var names: Array = saved.keys()
+	names.sort()
+	for nm in names:
+		if problem(saved[nm]) == "" and CollectionStore.deck_ok(saved[nm]):
+			out.append({"label": "★ " + nm, "deck": saved[nm], "desc": "Tu mazo guardado."})
+	out.append({"label": "Mazo inicial", "deck": CollectionStore.starter_deck(),
+		"desc": "Tu mazo de partida: guerreros Ronin y acciones básicas. Gana duelos de campaña para conseguir más cartas."})
+	for i in PRESETS.size():
+		var d := preset_deck(i)
+		if CollectionStore.deck_ok(d):
+			out.append({"label": PRESETS[i].nombre, "deck": d, "desc": PRESETS[i].desc})
+	return out
