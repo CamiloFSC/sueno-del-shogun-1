@@ -273,3 +273,8 @@ El Honor de un jugador **nunca pasa de 7** (`Game.HONOR_MAX`). Todo el Honor gan
 - **Sobres**: la PRIMERA vez que ganas cada duelo de campaña recibes 1 sobre (se abre desde el cartel de victoria o desde «Abrir sobre» del menú). Contiene 2 guerreros, 2 acciones Bushi y 1 Daimyo; se prefieren cartas que aún no tienes y, si no quedan, salen repetidas. Las repetidas no dan nada.
 - **Galería**: las cartas no obtenidas aparecen en blanco y negro, borrosas, con «?»; la búsqueda no las encuentra y no se pueden abrir. Botones de prueba 🔓 Todas / 🔒 Reiniciar.
 - **Holográfico** (`assets/shaders/holo.gdshader`, `CardFx.HOLO` = Daimyos 55-60): arcoíris, destello y chispas en galería, visor y apertura de sobres (en el visor sigue al ratón).
+
+## 39. Teclado y mano en abanico (9-nov)
+- **Ventana de decisión**: las opciones van en una rejilla fija (antes un HFlowContainer dentro de un scroll dejaba zonas sin respuesta al clic).
+- **Mano en abanico** (`FanHand`): las cartas se abren como en una mano real; la carta bajo el ratón (o elegida con el teclado) se levanta, crece y queda por encima, con el botón Zoom.
+- **Teclado**: flechas o WASD mueven el cursor (contorno celeste con fondo tenue); Arriba/Abajo cambian entre barra de acciones y mano; Tab cambia de zona; Enter o Espacio eligen; Z amplía la carta; Esc cierra el zoom. En ventanas de decisión se recorren las opciones (Arriba/Abajo por filas) y luego Confirmar / Ver el tablero. Mover el ratón devuelve el control al ratón.

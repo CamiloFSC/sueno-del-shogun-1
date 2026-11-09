@@ -3,7 +3,7 @@ extends Control
 
 const HUMAN := 0
 const ZONE_H := 185     # alto de las cartas en el tablero
-const HAND_H := 180     # alto de las cartas de la mano
+const HAND_H := 168     # alto de las cartas de la mano
 const HELP := "CÓMO JUGAR\n\n1. Cada turno ganas +1 Honor y robas 1 carta.\n2. Baja 1 guerrero pagando su Honor (♦). Las cartas con borde dorado son las que puedes jugar.\n3. Juega acciones (rojas) si quieres.\n4. Ataca al guerrero rival o a su castillo (⚔ = dados que tiras).\n5. Gana quien vacíe el castillo rival (7 cartas).\n\nPasa el mouse sobre una carta para verla grande y leer su efecto.\nAzul = guerrero · Verde = daimyo · Rojo = acción"
 
 var g: Game
@@ -20,7 +20,7 @@ var dice_shown_id := 0
 var preview_panel: PanelContainer
 var choice_overlay: ColorRect
 var choice_title: Label
-var choice_box: HFlowContainer
+var choice_box: GridContainer
 var choice_scroll: ScrollContainer
 var choice_info: Label
 var choice_btn: Button
@@ -50,8 +50,12 @@ var dice_anim_end := 0
 var status: Label
 var zone_opp: HBoxContainer
 var zone_me: HBoxContainer
-var hand_box: HBoxContainer
-var hand_scroll: ScrollContainer
+var hand_box: FanHand
+var hand_scroll: Control
+var kb_cursor: Panel
+var kb_on := false             # el teclado está manejando el cursor
+var kb_ctx := ""
+var kb_idx := {}              # índice recordado por contexto
 var hand_press := false          # botón izquierdo pulsado sobre la mano
 var hand_moved := 0.0            # cuánto se arrastró de lado (evita que el arrastre juegue la carta)
 var bar: HBoxContainer
@@ -176,13 +180,12 @@ func _build_ui() -> void:
 	bar = HBoxContainer.new()                       # los botones se reparten el ancho y recortan su texto: nunca empujan el registro ni el Honor
 	bar.add_theme_constant_override("separation", 6)
 	root.add_child(bar)
-	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(0, HAND_H + 22)
-	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var sc := Control.new()
+	sc.custom_minimum_size = Vector2(0, HAND_H + 40)
 	hand_scroll = sc
 	root.add_child(sc)
-	hand_box = HBoxContainer.new()
-	hand_box.add_theme_constant_override("separation", 6)
+	hand_box = FanHand.new()                 # mano en abanico
+	hand_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.add_child(hand_box)
 
 	# --- columna derecha: marcadores, mensaje, registro de la partida y dados
@@ -312,7 +315,8 @@ func _build_ui() -> void:
 	csc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	cvb.add_child(csc)
 	choice_scroll = csc
-	choice_box = HFlowContainer.new()
+	choice_box = GridContainer.new()      # rejilla fija: el HFlowContainer dentro de un scroll dejaba zonas sin respuesta al clic
+	choice_box.columns = 5
 	choice_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	choice_box.add_theme_constant_override("h_separation", 8)
 	choice_box.add_theme_constant_override("v_separation", 8)
@@ -580,6 +584,8 @@ func _fill_choice() -> void:
 	choice_title.text = pd.prompt
 	var keep_scroll: int = choice_scroll.scroll_vertical
 	_clear(choice_box)
+	var first: Dictionary = pd.options[0] if pd.options.size() > 0 else {}
+	choice_box.columns = 4 if first.has("card") else (7 if first.has("die") else 5)
 	for i in pd.options.size():
 		var o: Dictionary = pd.options[i]
 		var picked: bool = i in choice_sel
@@ -736,6 +742,8 @@ func _row(parent: Node) -> HBoxContainer:
 	return h
 
 func _clear(box: Node) -> void:
+	if kb_cursor != null and kb_cursor.get_parent() != null and box.is_ancestor_of(kb_cursor):
+		kb_cursor.get_parent().remove_child(kb_cursor)     # el cursor del teclado no se borra con la lista
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
@@ -761,6 +769,7 @@ func _style(fill: Color, border: Color, width: int) -> StyleBoxFlat:
 ## Carta con su imagen real (si existe en assets/cartas/).
 func _art_btn(id: int, tex: Texture2D, enabled: bool, cb: Callable, h: int) -> Button:
 	var b := Button.new()
+	b.set_meta("cid", id)
 	var aspect := float(tex.get_width()) / float(tex.get_height())
 	b.custom_minimum_size = Vector2(int(h * aspect), h)
 	b.disabled = false   # el "apagado" se dibuja con el color de la imagen
@@ -798,6 +807,7 @@ func _card_btn(id: int, enabled: bool, cb: Callable = Callable(), h: int = ZONE_
 	if tex != null:
 		return _art_btn(id, tex, enabled, cb, h)
 	var b := Button.new()
+	b.set_meta("cid", id)
 	b.custom_minimum_size = Vector2(maxi(120, int(h * 0.8)), h)
 	b.text = _card_text(id)
 	b.disabled = not enabled
@@ -917,28 +927,183 @@ func _open_zoom(id: int) -> void:
 func _close_zoom() -> void:
 	zoom_overlay.visible = false
 
-## Arrastrar la mano: con el botón pulsado sobre ella, mover el mouse de lado la desplaza.
-func _input(ev: InputEvent) -> void:
-	if hand_scroll == null:
-		return
-	var overlay_open: bool = (choice_overlay != null and choice_overlay.visible) or (zoom_overlay != null and zoom_overlay.visible)
-	if overlay_open:                        # con una ventana abierta (decisión, lupa) la mano no se arrastra ni bloquea clics
-		hand_press = false
-		hand_moved = 0.0
-		return
-	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
-		hand_press = ev.pressed and hand_scroll.get_global_rect().has_point(ev.position)
-		if ev.pressed:
-			hand_moved = 0.0
-	elif ev is InputEventMouseMotion and hand_press and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		hand_moved += absf(ev.relative.x)
-		if hand_moved > 8.0:
-			hand_scroll.scroll_horizontal -= int(ev.relative.x)
-
 func _unhandled_input(ev: InputEvent) -> void:
 	if zoom_overlay != null and zoom_overlay.visible and ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
 		_close_zoom()
 		get_viewport().set_input_as_handled()
+		return
+	if ev is InputEventMouseMotion and kb_on and ev.relative.length() > 2.0:
+		kb_on = false                         # al mover el ratón vuelve el control normal
+		hand_box.kb_index = -1
+		_kb_hide()
+		return
+	if ev is InputEventKey and ev.pressed and not ev.echo:
+		if _kb_key(ev):
+			get_viewport().set_input_as_handled()
+
+# ---------------------------------------------------------------- teclado
+
+## Qué se puede recorrer con el teclado ahora: {"ctx": nombre, "items": [Control], "cols": int}
+func _kb_zones() -> Array:
+	var zs := []
+	for ch in get_children():
+		if ch is PackOpening:
+			return zs
+	if zoom_overlay != null and zoom_overlay.visible:
+		return zs
+	if end_overlay != null and end_overlay.visible:
+		var its := []
+		for k in end_btns:
+			if end_btns[k].visible and not end_btns[k].disabled:
+				its.append(end_btns[k])
+		zs.append({"ctx": "fin", "items": its, "cols": its.size()})
+		return zs
+	if choice_overlay != null and choice_overlay.visible:
+		var opts := []
+		for c in choice_box.get_children():
+			opts.append(c)
+		var acts := []
+		for c in choice_btn.get_parent().get_children():
+			if c is Button and c.visible and not c.disabled:
+				acts.append(c)
+		zs.append({"ctx": "opciones", "items": opts, "cols": choice_box.columns})
+		zs.append({"ctx": "acciones", "items": acts, "cols": maxi(acts.size(), 1)})
+		return zs
+	if g.phase == "OVER":
+		return zs
+	var btns := []
+	for c in bar.get_children():
+		if c is Button and c.visible and not c.disabled:
+			btns.append(c)
+	var cards := []
+	for c in hand_box.get_children():
+		cards.append(c)
+	zs.append({"ctx": "barra", "items": btns, "cols": maxi(btns.size(), 1)})
+	zs.append({"ctx": "mano", "items": cards, "cols": maxi(cards.size(), 1)})
+	return zs
+
+func _kb_key(ev: InputEventKey) -> bool:
+	var k: int = ev.keycode
+	var nav: bool = k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_Z, KEY_TAB, KEY_A, KEY_D, KEY_W, KEY_S]
+	if not nav or duel_busy:
+		return false
+	var zs := _kb_zones()
+	var live := []
+	for z in zs:
+		if z.items.size() > 0:
+			live.append(z)
+	if live.is_empty():
+		return false
+	if not kb_on:                    # la primera pulsación solo muestra el cursor
+		kb_on = true
+		_kb_place(live, kb_ctx)
+		return true
+	var zi := 0
+	for i in live.size():
+		if live[i].ctx == kb_ctx:
+			zi = i
+	var z: Dictionary = live[zi]
+	var idx: int = clampi(int(kb_idx.get(z.ctx, 0)), 0, z.items.size() - 1)
+	var cols: int = maxi(int(z.cols), 1)
+	match k:
+		KEY_LEFT, KEY_A:
+			idx = maxi(idx - 1, 0)
+		KEY_RIGHT, KEY_D:
+			idx = mini(idx + 1, z.items.size() - 1)
+		KEY_UP, KEY_W:
+			if z.ctx == "opciones" and idx - cols >= 0:
+				idx -= cols
+			elif zi > 0:
+				zi -= 1
+				z = live[zi]
+				idx = clampi(int(kb_idx.get(z.ctx, 0)), 0, z.items.size() - 1)
+		KEY_DOWN, KEY_S:
+			if z.ctx == "opciones" and idx + cols < z.items.size():
+				idx += cols
+			elif zi < live.size() - 1:
+				zi += 1
+				z = live[zi]
+				idx = clampi(int(kb_idx.get(z.ctx, 0)), 0, z.items.size() - 1)
+		KEY_TAB:
+			zi = (zi + 1) % live.size()
+			z = live[zi]
+			idx = clampi(int(kb_idx.get(z.ctx, 0)), 0, z.items.size() - 1)
+		KEY_Z:
+			var it: Control = z.items[idx]
+			if it.has_meta("cid"):
+				_open_zoom(int(it.get_meta("cid")))
+			return true
+		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
+			var it: Control = z.items[idx]
+			if it is BaseButton:
+				(it as BaseButton).pressed.emit()
+			return true
+	kb_ctx = z.ctx
+	kb_idx[z.ctx] = idx
+	return true
+
+func _kb_place(live: Array, ctx: String) -> void:
+	for z in live:
+		if z.ctx == ctx:
+			return
+	kb_ctx = live[0].ctx
+	for z in live:
+		if z.ctx == "mano":
+			kb_ctx = "mano"
+
+func _kb_hide() -> void:
+	if kb_cursor != null and kb_cursor.get_parent() != null:
+		kb_cursor.get_parent().remove_child(kb_cursor)
+
+func _kb_make_cursor() -> void:
+	kb_cursor = Panel.new()
+	kb_cursor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kb_cursor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1.0, 0.92, 0.4, 0.12)
+	sb.border_color = Color(0.55, 0.95, 1.0)
+	sb.set_border_width_all(4)
+	sb.set_corner_radius_all(8)
+	sb.shadow_color = Color(0.4, 0.9, 1.0, 0.55)
+	sb.shadow_size = 8
+	kb_cursor.add_theme_stylebox_override("panel", sb)
+
+func _process(_d: float) -> void:
+	if kb_cursor == null:
+		_kb_make_cursor()
+	if not kb_on:
+		return
+	var zs := _kb_zones()
+	var live := []
+	for z in zs:
+		if z.items.size() > 0:
+			live.append(z)
+	if live.is_empty():
+		_kb_hide()
+		hand_box.kb_index = -1
+		return
+	var found := false
+	for z in live:
+		if z.ctx == kb_ctx:
+			found = true
+	if not found:
+		kb_ctx = live[0].ctx
+	for z in live:
+		if z.ctx != kb_ctx:
+			continue
+		var idx: int = clampi(int(kb_idx.get(z.ctx, 0)), 0, z.items.size() - 1)
+		var target: Control = z.items[idx]
+		hand_box.kb_index = idx if z.ctx == "mano" else -1
+		if kb_cursor.get_parent() != target:
+			_kb_hide()
+			target.add_child(kb_cursor)
+			kb_cursor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			kb_cursor.z_index = 5
+		kb_cursor.modulate.a = 0.75 + 0.25 * sin(Time.get_ticks_msec() / 160.0)
+		if target.has_meta("cid") and z.ctx == "mano":
+			_zoom_show(int(target.get_meta("cid")), target)
+		else:
+			_zoom_hide_now()
 
 func _show_detail(id: int) -> void:
 	var c := g.card(id)
@@ -1580,7 +1745,7 @@ func _start_tutorial() -> void:
 	tut.start([
 		{"target": castle_me, "dir": "left", "text": "Este es TU CASTILLO: 7 cartas. Cada vez que un personaje tuyo muere, pierdes una. Si se acaban, pierdes la partida. Lo mismo vale para el castillo del rival."},
 		{"target": info_me, "dir": "up", "text": "El HONOR es tu dinero. Ganas 1 al empezar cada turno y lo gastas para bajar guerreros a la mesa."},
-		{"target": hand_scroll, "dir": "down", "text": "Esta es tu MANO. Las cartas con borde dorado se pueden bajar con tu Honor actual. Con el mouse encima, el botón Zoom las muestra en grande; también puedes arrastrar la mano de lado."},
+		{"target": hand_scroll, "dir": "down", "text": "Esta es tu MANO. Las cartas con borde dorado se pueden bajar con tu Honor actual. Con el mouse encima la carta se levanta y el botón Zoom la muestra en grande. También puedes moverte con las flechas del teclado, Enter para elegir y Z para ampliar."},
 		{"target": zone_me, "dir": "down", "text": "Tu CAMPO: 1 guerrero ACTIVO (el que pelea) y hasta 3 PASIVOS en espera. Una vez por turno puedes cambiar un pasivo por el activo."},
 		{"target": bar, "dir": "down", "text": "Aquí atacas: al guerrero rival (duelo obligatorio) o al castillo (el rival puede resistir). Luego pulsas «Terminar turno»."},
 		{"target": log_box, "dir": "left", "text": "En un DUELO cada guerrero tira tantos dados como su ATAQUE. Gana el total más alto; el perdedor muere. Aquí verás el registro y los dados."},
